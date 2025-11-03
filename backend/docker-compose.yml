@@ -1,0 +1,50 @@
+name: backend
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: clinica
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: senha
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - default
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python manage.py runserver 0.0.0.0:8000
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DJANGO_ALLOWED_HOSTS: "*"
+      DJANGO_DEBUG: "1"
+      DATABASE_ENGINE: django.db.backends.postgresql
+      DATABASE_HOST: db
+      DATABASE_NAME: clinica
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: senha
+      DATABASE_PORT: "5432"
+    ports:
+      - "8000:8000"
+    networks:
+      - default
+    volumes:
+      - .:/app
+
+networks:
+  default:
+    name: backend_default
+
+volumes:
+  pgdata:
+    name: backend_pgdata
