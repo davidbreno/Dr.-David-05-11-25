@@ -10,10 +10,18 @@ export default function PacienteCreate(){
     nav('/pacientes')
   }
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-2xl animate-fadeIn">
+      <div className="mb-6">
+        <button onClick={() => nav('/pacientes')} className="text-gray-400 hover:text-white flex items-center gap-2 mb-4">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Voltar
+        </button>
+        <h1 className="page-title">➕ Novo Paciente</h1>
+      </div>
       <div className="card">
-        <h1 className="mb-4 text-2xl font-semibold">Novo Paciente</h1>
-        <PacienteForm onSubmit={onSubmit} submitLabel="Criar"/>
+        <PacienteForm onSubmit={onSubmit} submitLabel="Criar Paciente"/>
       </div>
     </div>
   )

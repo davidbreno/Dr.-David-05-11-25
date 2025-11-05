@@ -6,11 +6,11 @@ export default function NavBar() {
   const { isAuthenticated, logout } = useAuth()
   const loc = useLocation()
   const active = (path) => loc.pathname.startsWith(path) 
-    ? 'text-blue-600 font-semibold border-b-2 border-blue-600' 
-    : 'text-gray-600 hover:text-gray-900'
+    ? 'text-blue-400 font-semibold border-b-2 border-blue-400' 
+    : 'text-gray-300 hover:text-white'
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200">
+    <header className="shadow-sm border-b border-gray-700" style={{background: 'rgba(23, 24, 33, 0.8)', backdropFilter: 'blur(10px)'}}>
       <div className="container mx-auto flex items-center justify-between px-6 py-4">
         <Link to="/" className="flex items-center gap-2">
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-2 rounded-lg">
@@ -24,11 +24,8 @@ export default function NavBar() {
         </Link>
         {isAuthenticated ? (
           <nav className="flex items-center gap-6">
+            <Link to="/dashboard" className={`${active('/dashboard')} pb-1 transition-all`}>Dashboard</Link>
             <Link to="/pacientes" className={`${active('/pacientes')} pb-1 transition-all`}>Pacientes</Link>
-            <Link to="/orcamentos" className={`${active('/orcamentos')} pb-1 transition-all`}>Orçamentos</Link>
-            <Link to="/odontogramas" className={`${active('/odontogramas')} pb-1 transition-all`}>Odontograma</Link>
-            <Link to="/lancamentos" className={`${active('/lancamentos')} pb-1 transition-all`}>Financeiro</Link>
-            <Link to="/produtos" className={`${active('/produtos')} pb-1 transition-all`}>Estoque</Link>
             <button onClick={logout} className="btn btn-primary ml-4">Sair</button>
           </nav>
         ) : (

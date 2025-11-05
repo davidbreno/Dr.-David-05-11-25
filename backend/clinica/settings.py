@@ -21,10 +21,6 @@ INSTALLED_APPS = [
     'corsheaders',
     'core',
     'pacientes',
-    'odontograma',
-    'orcamentos',
-    'financeiro',
-    'estoque',
 ]
 
 MIDDLEWARE = [

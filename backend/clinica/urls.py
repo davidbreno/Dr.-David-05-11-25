@@ -19,8 +19,4 @@ urlpatterns = [
 
     # API Endpoints
     path("api/pacientes/", include("pacientes.urls")),
-    path("api/odontograma/", include("odontograma.urls")),
-    path("api/orcamentos/", include("orcamentos.urls")),
-    path("api/financeiro/", include("financeiro.urls")),
-    path("api/estoque/", include("estoque.urls")),
 ]
