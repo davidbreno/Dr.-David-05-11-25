@@ -20,3 +20,21 @@ class Orcamento(models.Model):
 
     def __str__(self) -> str:
         return f"Orçamento #{self.id} - {self.paciente.nome}"
+
+
+class OrcamentoItem(models.Model):
+    orcamento = models.ForeignKey(Orcamento, on_delete=models.CASCADE, related_name="itens")
+    dente = models.IntegerField()
+    procedimento = models.CharField(max_length=255)
+    valor = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["id"]
+        indexes = [
+            models.Index(fields=["orcamento"]),
+            models.Index(fields=["dente"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"Item {self.dente} - {self.procedimento} (R$ {self.valor})"

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client.js'
 import OrcamentosTab from './tabs/OrcamentosTab.jsx'
+import AnamneseTab from './tabs/AnamneseTab.jsx'
 
 export default function PacienteDetail() {
   const { id } = useParams()
@@ -9,7 +10,10 @@ export default function PacienteDetail() {
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState('')
   const [paciente, setPaciente] = useState(null)
-  const [tab, setTab] = useState('sobre') // sobre | consultas | mensagens | orcamentos
+  const [tab, setTab] = useState('sobre') // sobre | consultas | mensagens | orcamentos | anamnese
+  const [anamnese, setAnamnese] = useState(null)
+  const [anamLoading, setAnamLoading] = useState(false)
+  const [anamRefreshTick, setAnamRefreshTick] = useState(0)
 
   useEffect(() => {
     async function load() {
@@ -25,6 +29,35 @@ export default function PacienteDetail() {
       }
     }
     load()
+  }, [id])
+
+  // Carrega anamnese (resumo) quando entra no detalhe e quando a aba 'sobre' voltar a ficar ativa
+  useEffect(() => {
+    async function loadAnamnese() {
+      setAnamLoading(true)
+      try {
+        const { data } = await api.get(`/pacientes/anamneses/?paciente=${id}`)
+        const item = data.results ? data.results[0] : data[0]
+        setAnamnese(item || null)
+      } catch {
+        setAnamnese(null)
+      } finally {
+        setAnamLoading(false)
+      }
+    }
+    if (tab === 'sobre') loadAnamnese()
+  }, [id, tab, anamRefreshTick])
+
+  // Atualiza resumo ao receber evento de salvamento na aba de anamnese
+  useEffect(() => {
+    function onSaved(e){
+      if (String(e.detail?.pacienteId) === String(id)) {
+        // força recarregar o resumo mesmo se a aba já for 'sobre'
+        setAnamRefreshTick((t) => t + 1)
+      }
+    }
+    window.addEventListener('anamnese:saved', onSaved)
+    return () => window.removeEventListener('anamnese:saved', onSaved)
   }, [id])
 
   if (loading) {
@@ -61,8 +94,8 @@ export default function PacienteDetail() {
             </div>
           </div>
           <div className="flex gap-2">
-            <button className="btn" onClick={() => nav('/pacientes')}>Voltar</button>
-            <button className="btn btn-primary" onClick={() => nav(`/pacientes/${id}/edit`)}>
+            <button type="button" className="btn" onClick={() => nav('/pacientes')}>Voltar</button>
+            <button type="button" className="btn btn-primary" onClick={() => nav(`/pacientes/${id}/edit`)}>
               Editar
             </button>
           </div>
@@ -73,6 +106,7 @@ export default function PacienteDetail() {
           <button className={`px-4 py-2 rounded-lg ${tab==='consultas' ? 'bg-[#7DEDDE] text-[#1a1b26] font-semibold' : 'text-gray-300 hover:bg-[#21222D]'}`} onClick={() => setTab('consultas')}>Consultas</button>
           <button className={`px-4 py-2 rounded-lg ${tab==='mensagens' ? 'bg-[#7DEDDE] text-[#1a1b26] font-semibold' : 'text-gray-300 hover:bg-[#21222D]'}`} onClick={() => setTab('mensagens')}>Mensagens</button>
           <button className={`px-4 py-2 rounded-lg ${tab==='orcamentos' ? 'bg-[#7DEDDE] text-[#1a1b26] font-semibold' : 'text-gray-300 hover:bg-[#21222D]'}`} onClick={() => setTab('orcamentos')}>Orçamentos</button>
+          <button className={`px-4 py-2 rounded-lg ${tab==='anamnese' ? 'bg-[#7DEDDE] text-[#1a1b26] font-semibold' : 'text-gray-300 hover:bg-[#21222D]'}`} onClick={() => setTab('anamnese')}>Anamnese</button>
         </div>
       </div>
 
@@ -89,9 +123,46 @@ export default function PacienteDetail() {
               <Item label="Endereço" value={paciente.endereco || '—'} />
             </div>
           </div>
-          <div className="card">
-            <h2 className="text-xl font-bold text-white mb-4">Observações</h2>
-            <p className="text-gray-300 whitespace-pre-wrap">{paciente.observacoes || 'Sem observações.'}</p>
+          <div className="space-y-6">
+            <div className="card">
+              <h2 className="text-xl font-bold text-white mb-4">Observações</h2>
+              <p className="text-gray-300 whitespace-pre-wrap">{paciente.observacoes || 'Sem observações.'}</p>
+            </div>
+            <div className="card">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-xl font-bold text-white">Anamnese (resumo)</h2>
+                <button type="button" className="btn btn-primary" onClick={() => setTab('anamnese')}>Editar anamnese</button>
+              </div>
+              {anamLoading ? (
+                <div className="text-gray-400">Carregando…</div>
+              ) : anamnese ? (
+                <div className="text-gray-300 space-y-3">
+                  {anamnese.queixa_principal && <Item label="Queixa principal" value={anamnese.queixa_principal} />}
+                  {anamnese.antecedentes_medicos && <Item label="Antecedentes" value={anamnese.antecedentes_medicos} />}
+                  <div>
+                    <div className="text-sm text-gray-400">Condições</div>
+                    <div className="flex flex-wrap gap-2 mt-1 text-sm">
+                      {renderCond('Diabetes', anamnese.possui_diabetes)}
+                      {renderCond('Hipertensão', anamnese.possui_hipertensao)}
+                      {renderCond('Cardiopatia', anamnese.cardiopatia)}
+                      {renderCond('Asma', anamnese.asma)}
+                      {renderCond('Hemorragias', anamnese.hemorragias)}
+                      {renderCond('Reação à anestesia', anamnese.anestesia_reacao)}
+                      {renderCond('Fuma', anamnese.fuma)}
+                      {renderCond('Grávida', anamnese.gravida)}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <Item label="PA Sistólica" value={anamnese.pressao_sistolica ?? '—'} />
+                    <Item label="PA Diastólica" value={anamnese.pressao_diastolica ?? '—'} />
+                    <Item label="Batimentos" value={anamnese.batimentos ?? '—'} />
+                  </div>
+                  {anamnese.outros && <Item label="Outros" value={anamnese.outros} />}
+                </div>
+              ) : (
+                <div className="text-gray-400">Sem anamnese cadastrada.</div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -113,6 +184,10 @@ export default function PacienteDetail() {
       {tab === 'orcamentos' && (
         <OrcamentosTab pacienteId={paciente.id} pacienteNome={paciente.nome} />
       )}
+
+      {tab === 'anamnese' && (
+        <AnamneseTab pacienteId={paciente.id} pacienteNome={paciente.nome} />
+      )}
     </div>
   )
 }
@@ -124,4 +199,11 @@ function Item({ label, value }){
       <div className="text-white">{value}</div>
     </div>
   )
+}
+
+function renderCond(label, val){
+  const cls = val
+    ? 'px-2 py-1 rounded bg-green-600/20 text-green-300'
+    : 'px-2 py-1 rounded bg-gray-700/50 text-gray-400'
+  return <span className={cls}>{label}</span>
 }

@@ -1,22 +1,20 @@
 # Execução rápida
 
 ## Docker (recomendado)
-```bash
-cp .env.example .env
-make up
-# API: http://127.0.0.1:8000/api/pacientes/
-# Admin: http://127.0.0.1:8000/admin
+```pwsh
+# Um comando só: sobe containers e aplica migrações
+pwsh ./scripts/dev.ps1 -Rebuild
+# Endpoints:
+#  - Docs:       http://127.0.0.1:8000/api/docs/
+#  - Orçamentos: http://127.0.0.1:8000/api/orcamentos/
+#  - Pacientes:  http://127.0.0.1:8000/api/pacientes/
+#  - Admin:      http://127.0.0.1:8000/admin/
 ```
 
 ## Local sem Docker
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env  # ajuste DB_HOST=localhost se usar Postgres local
-python manage.py migrate
-python manage.py createsuperuser
-python manage.py setup_roles
-python manage.py runserver
+```pwsh
+# Um comando só: cria venv, instala deps, migra e roda
+pwsh ./scripts/local.ps1
 ```
 
 ## Autenticação JWT

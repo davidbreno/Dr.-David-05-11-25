@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../../api/client'
 
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000'
+
 // deslocamento vertical aplicado aos números (em px)
 const NUMBERS_OFFSET_Y = -48 // deslocamento apenas VISUAL
 
@@ -511,6 +513,7 @@ export default function OrcamentosTab({ pacienteId, pacienteNome }){
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [orcamentos, setOrcamentos] = useState([])
+  const [editingId, setEditingId] = useState(null)
 
   const total = useMemo(() => items.reduce((s,it)=> s + (Number(it.value)||0), 0), [items])
 
@@ -562,20 +565,98 @@ export default function OrcamentosTab({ pacienteId, pacienteNome }){
       const payload = {
         paciente: pacienteId,
         descricao: `Itens: ${resumo}`,
-        valor_total: total.toFixed(2),
         status: 'rascunho',
+        itens: items.map(it => ({ dente: it.tooth, procedimento: it.treatment, valor: Number(it.value) || 0 })),
       }
-      const { data } = await api.post('/orcamentos/', payload)
-      setMessage(`Orçamento #${data?.id ?? ''} salvo com sucesso.`)
+      let data
+      try {
+        if (editingId) {
+          const res = await api.put(`/orcamentos/${editingId}/`, payload)
+          data = res.data
+          setMessage(`Orçamento #${data?.id ?? editingId} atualizado.`)
+          setEditingId(null)
+        } else {
+          const res = await api.post('/orcamentos/', payload)
+          data = res.data
+          setMessage(`Orçamento #${data?.id ?? ''} salvo com sucesso.`)
+        }
+      } catch (errFirst) {
+        // Fallback: se o backend ainda não suportar itens aninhados (ou não migrou), tenta o payload antigo
+        const legacy = {
+          paciente: pacienteId,
+          descricao: `Itens: ${resumo}`,
+          valor_total: total.toFixed(2),
+          status: 'rascunho',
+        }
+        if (editingId) {
+          const res2 = await api.put(`/orcamentos/${editingId}/`, legacy)
+          data = res2.data
+          setMessage(`Orçamento #${data?.id ?? editingId} atualizado (modo legado).`)
+          setEditingId(null)
+        } else {
+          const res2 = await api.post('/orcamentos/', legacy)
+          data = res2.data
+          setMessage(`Orçamento #${data?.id ?? ''} salvo (modo legado).`)
+        }
+      }
       // Limpa estado do formulário
       setItems([]); setSelected([]); setTreatment(''); setValue('')
       // Atualiza a listagem
-      setOrcamentos(prev => [{...data}, ...prev].slice(0,5))
+      setOrcamentos(prev => {
+        const copy = [...prev]
+        const idx = copy.findIndex(o => o.id === data.id)
+        if (idx >= 0) copy[idx] = { ...copy[idx], ...data }
+        else copy.unshift({ ...data })
+        return copy.slice(0, 5)
+      })
     } catch (e) {
-      setError(e?.response?.data ? 'Erro ao salvar orçamento: verifique os dados.' : 'Falha de rede ao salvar orçamento.')
+      const detail = e?.response?.data ? JSON.stringify(e.response.data) : ''
+      setError(`Erro ao salvar orçamento. ${detail}`)
     } finally {
       setSaving(false)
     }
+  }
+
+  function loadForEdit(o){
+    setError(''); setMessage('')
+    setEditingId(o.id)
+    // Reidrata itens se existirem, senão tenta inferir do texto
+    if (Array.isArray(o.itens) && o.itens.length) {
+      setItems(o.itens.map(it => ({ tooth: it.dente, treatment: it.procedimento, value: Number(it.valor) || 0 })))
+    } else {
+      setItems([])
+    }
+    setSelected([]); setTreatment(''); setValue('')
+  }
+
+  async function handleApprove(id){
+    try {
+      const { data } = await api.post(`/orcamentos/${id}/aprovar/`)
+      setOrcamentos(prev => prev.map(o => o.id===id? { ...o, ...data } : o))
+      setMessage(`Orçamento #${id} aprovado.`)
+    } catch(e){ setError('Falha ao aprovar orçamento.') }
+  }
+
+  async function handleReject(id){
+    try {
+      const { data } = await api.post(`/orcamentos/${id}/reprovar/`)
+      setOrcamentos(prev => prev.map(o => o.id===id? { ...o, ...data } : o))
+      setMessage(`Orçamento #${id} reprovado.`)
+    } catch(e){ setError('Falha ao reprovar orçamento.') }
+  }
+
+  async function handleDelete(id){
+    try {
+      await api.delete(`/orcamentos/${id}/`)
+      setOrcamentos(prev => prev.filter(o => o.id!==id))
+      if (editingId === id) setEditingId(null)
+      setMessage(`Orçamento #${id} removido.`)
+    } catch(e){ setError('Falha ao remover orçamento.') }
+  }
+
+  function handlePdf(id){
+    const url = `${API_BASE}/api/orcamentos/${id}/pdf/`
+    window.open(url, '_blank', 'noopener')
   }
 
   return (
@@ -657,8 +738,8 @@ export default function OrcamentosTab({ pacienteId, pacienteNome }){
           </div>
         )}
         <div className="mt-4 flex gap-2 justify-end">
-          <button className="btn" onClick={()=>{ setItems([]); setSelected([]); setTreatment(''); setValue('') }}>Limpar</button>
-          <button className="btn btn-primary disabled:opacity-60" disabled={saving} onClick={saveOrcamento}>{saving ? 'Salvando...' : 'Salvar orçamento'}</button>
+          <button className="btn" onClick={()=>{ setItems([]); setSelected([]); setTreatment(''); setValue(''); setEditingId(null); setMessage('') }}>Limpar</button>
+          <button className="btn btn-primary disabled:opacity-60" disabled={saving} onClick={saveOrcamento}>{saving ? 'Salvando...' : (editingId ? 'Atualizar orçamento' : 'Salvar orçamento')}</button>
         </div>
       </div>
 
@@ -677,6 +758,7 @@ export default function OrcamentosTab({ pacienteId, pacienteNome }){
                 <tr>
                   <th className="text-left py-2">#</th>
                   <th className="text-left py-2">Descrição</th>
+                  <th className="text-left py-2">Itens</th>
                   <th className="text-left py-2">Status</th>
                   <th className="text-left py-2">Valor total</th>
                   <th className="text-left py-2">Criado em</th>
@@ -687,9 +769,25 @@ export default function OrcamentosTab({ pacienteId, pacienteNome }){
                   <tr key={o.id} className="border-t border-gray-700/60">
                     <td className="py-2 text-white">{o.id}</td>
                     <td className="py-2 text-gray-300 max-w-xl truncate" title={o.descricao}>{o.descricao || '—'}</td>
+                    <td className="py-2 text-gray-300">
+                      {Array.isArray(o.itens) && o.itens.length > 0 ? (
+                        <div className="max-w-xl truncate" title={o.itens.map(i=>`${i.dente}-${i.procedimento} (R$ ${Number(i.valor).toFixed(2)})`).join('; ')}>
+                          {o.itens.slice(0,3).map(i=>`${i.dente}-${i.procedimento}`).join(', ')}{o.itens.length>3?'…':''}
+                        </div>
+                      ) : '—'}
+                    </td>
                     <td className="py-2 text-gray-300 capitalize">{o.status}</td>
-                    <td className="py-2 text-gray-300">R$ {Number(o.valor_total).toFixed(2)}</td>
-                    <td className="py-2 text-gray-400">{new Date(o.criado_em).toLocaleString()}</td>
+                    <td className="py-2 text-gray-300">R$ {Number(o.valor_total ?? o.total ?? 0).toFixed(2)}</td>
+                    <td className="py-2 text-gray-400">
+                      <div>{new Date(o.criado_em).toLocaleString()}</div>
+                      <div className="flex gap-2 mt-1">
+                        <button className="btn btn-xs" onClick={()=>loadForEdit(o)}>Editar</button>
+                        <button className="btn btn-xs" onClick={()=>handlePdf(o.id)}>PDF</button>
+                        <button className="btn btn-xs" onClick={()=>handleApprove(o.id)}>Aprovar</button>
+                        <button className="btn btn-xs" onClick={()=>handleReject(o.id)}>Reprovar</button>
+                        <button className="btn btn-danger btn-xs" onClick={()=>handleDelete(o.id)}>Excluir</button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -19,4 +19,5 @@ urlpatterns = [
 
     # API Endpoints
     path("api/pacientes/", include("pacientes.urls")),
+    path("api/orcamentos/", include("orcamentos.urls")),
 ]

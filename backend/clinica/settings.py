@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'core',
     'pacientes',
+    'orcamentos',
 ]
 
 MIDDLEWARE = [
