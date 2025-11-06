@@ -15,7 +15,7 @@ export default function Sidebar() {
       return (
         <button
           onClick={onClick}
-          className="w-full flex items-center gap-3 mx-6 px-4 py-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-[#21222D] transition-all group"
+          className="flex items-center gap-3 mx-6 px-4 py-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-[#21222D] transition-all group"
         >
           {icon}
           <span className="text-sm font-medium">{label}</span>
@@ -39,14 +39,14 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="w-64 h-screen fixed left-0 top-0 bg-[#171821] flex flex-col" style={{
+    <aside className="w-56 h-screen fixed left-0 top-0 bg-[#171821] flex flex-col" style={{
       borderRight: '1px solid',
       borderImageSource: 'linear-gradient(to bottom, transparent 0%, #C0C0C0 20%, #C0C0C0 80%, transparent 100%)',
       borderImageSlice: 1
     }}>
       {/* Logo */}
       <div className="p-8 flex items-center justify-center">
-        <img src="/logo.png" alt="Logo" className="w-32 h-auto object-contain" />
+        <img src="/logo.svg" alt="Logo" className="w-20 h-auto object-contain" />
       </div>
 
       {/* Menu Items */}

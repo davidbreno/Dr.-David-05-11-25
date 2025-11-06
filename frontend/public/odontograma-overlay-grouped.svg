@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <title>Overlay normalizado por dente (posições relativas)</title>
+  <g id="dentes">
+    <!-- Maximize a compatibilidade: círculos em posições percentuais aproximadas -->
+    <!-- Superior direito (21..28) -->
+    <g id="dente-21"><circle cx="54.7%" cy="6.8%" r="2.2" fill="none"/></g>
+    <g id="dente-22"><circle cx="60.5%" cy="7.9%" r="2.2" fill="none"/></g>
+    <g id="dente-23"><circle cx="65.9%" cy="5.6%" r="2.2" fill="none"/></g>
+    <g id="dente-24"><circle cx="71.9%" cy="10.2%" r="2.2" fill="none"/></g>
+    <g id="dente-25"><circle cx="78.5%" cy="9.1%" r="2.2" fill="none"/></g>
+    <g id="dente-26"><circle cx="84.5%" cy="11.4%" r="2.2" fill="none"/></g>
+    <g id="dente-27"><circle cx="90.8%" cy="11.4%" r="2.2" fill="none"/></g>
+    <g id="dente-28"><circle cx="97.4%" cy="16.5%" r="2.2" fill="none"/></g>
+
+    <!-- Superior esquerdo (11..18) -->
+    <g id="dente-11"><circle cx="43.3%" cy="5.6%" r="2.2" fill="none"/></g>
+    <g id="dente-12"><circle cx="37.3%" cy="10.2%" r="2.2" fill="none"/></g>
+    <g id="dente-13"><circle cx="32.1%" cy="5.6%" r="2.2" fill="none"/></g>
+    <g id="dente-14"><circle cx="25.5%" cy="11.4%" r="2.2" fill="none"/></g>
+    <g id="dente-15"><circle cx="19.7%" cy="12.8%" r="2.2" fill="none"/></g>
+    <g id="dente-16"><circle cx="13.4%" cy="11.4%" r="2.2" fill="none"/></g>
+    <g id="dente-17"><circle cx="7.2%" cy="15.8%" r="2.2" fill="none"/></g>
+    <g id="dente-18"><circle cx="1.1%" cy="16.5%" r="2.2" fill="none"/></g>
+
+    <!-- Inferior direito (31..38) -->
+    <g id="dente-31"><circle cx="55.3%" cy="96.8%" r="2.2" fill="none"/></g>
+    <g id="dente-32"><circle cx="60.5%" cy="94.7%" r="2.2" fill="none"/></g>
+    <g id="dente-33"><circle cx="66.1%" cy="96.8%" r="2.2" fill="none"/></g>
+    <g id="dente-34"><circle cx="72.1%" cy="93.3%" r="2.2" fill="none"/></g>
+    <g id="dente-35"><circle cx="78.3%" cy="91.7%" r="2.2" fill="none"/></g>
+    <g id="dente-36"><circle cx="84.9%" cy="91.2%" r="2.2" fill="none"/></g>
+    <g id="dente-37"><circle cx="90.6%" cy="87.5%" r="2.2" fill="none"/></g>
+    <g id="dente-38"><circle cx="97.2%" cy="84.8%" r="2.2" fill="none"/></g>
+
+    <!-- Inferior esquerdo (41..48) -->
+    <g id="dente-41"><circle cx="43.3%" cy="94.7%" r="2.2" fill="none"/></g>
+    <g id="dente-42"><circle cx="37.4%" cy="93.3%" r="2.2" fill="none"/></g>
+    <g id="dente-43"><circle cx="31.9%" cy="96.8%" r="2.2" fill="none"/></g>
+    <g id="dente-44"><circle cx="25.3%" cy="93.3%" r="2.2" fill="none"/></g>
+    <g id="dente-45"><circle cx="19.2%" cy="91.7%" r="2.2" fill="none"/></g>
+    <g id="dente-46"><circle cx="13.2%" cy="93.3%" r="2.2" fill="none"/></g>
+    <g id="dente-47"><circle cx="7.2%" cy="88.5%" r="2.2" fill="none"/></g>
+    <g id="dente-48"><circle cx="0%" cy="85.2%" r="2.2" fill="none"/></g>
+  </g>
+</svg>

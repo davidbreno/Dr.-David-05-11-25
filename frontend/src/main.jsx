@@ -12,6 +12,7 @@ import Dashboard from './modules/dashboard/Dashboard.jsx'
 import PacientesList from './modules/pacientes/PacientesList.jsx'
 import PacienteCreate from './modules/pacientes/PacienteCreate.jsx'
 import PacienteEdit from './modules/pacientes/PacienteEdit.jsx'
+import PacienteDetail from './modules/pacientes/PacienteDetail.jsx'
 
 function AppContent() {
   const { isAuthenticated } = useAuth()
@@ -28,6 +29,7 @@ function AppContent() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/pacientes" element={<PacientesList />} />
               <Route path="/pacientes/new" element={<PacienteCreate />} />
+              <Route path="/pacientes/:id" element={<PacienteDetail />} />
               <Route path="/pacientes/:id/edit" element={<PacienteEdit />} />
               <Route path="/profile" element={<div className="text-white">Profile (Em construção)</div>} />
               <Route path="/leaderboard" element={<div className="text-white">Leaderboard (Em construção)</div>} />

@@ -164,6 +164,7 @@ export default function Dashboard() {
 
   const Clock = () => {
     const [time, setTime] = useState(new Date())
+    const targetDate = new Date(2025, 11, 31, 23, 59, 59) // 31 de dezembro de 2025, 23:59:59
 
     useEffect(() => {
       const timer = setInterval(() => setTime(new Date()), 1000)
@@ -171,53 +172,58 @@ export default function Dashboard() {
     }, [])
 
     const now = new Date()
-    const nextYear = new Date(now.getFullYear() + 1, 0, 1)
-    const diff = nextYear - now
+    const diff = targetDate - now
     
     const days = Math.floor(diff / (1000 * 60 * 60 * 24))
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
     const seconds = Math.floor((diff % (1000 * 60)) / 1000)
 
-    const FlipCard = ({ value, label }) => (
-      <div className="flex flex-col items-center">
-        <div className="relative" style={{ 
-          width: '50px', 
-          height: '60px', 
-          background: 'linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%)',
-          borderRadius: '8px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 4px 8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)'
-        }}>
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: 0,
-            right: 0,
-            height: '1px',
-            background: 'rgba(0,0,0,0.5)'
-          }}></div>
-          <span style={{
-            fontSize: '1.8rem',
-            fontWeight: 'bold',
-            color: '#e0e0e0',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+    const FlipCard = ({ value, label }) => {
+      const displayValue = value.toString().length > 4 ? value.toString().slice(-4) : value.toString().padStart(2, '0')
+      const fontSize = value.toString().length > 3 ? '1.2rem' : '1.8rem'
+      const cardWidth = value.toString().length > 3 ? '70px' : '50px'
+      
+      return (
+        <div className="flex flex-col items-center">
+          <div className="relative" style={{ 
+            width: cardWidth, 
+            height: '60px', 
+            background: 'linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%)',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)'
           }}>
-            {value.toString().padStart(2, '0')}
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: 0,
+              right: 0,
+              height: '1px',
+              background: 'rgba(0,0,0,0.5)'
+            }}></div>
+            <span style={{
+              fontSize: fontSize,
+              fontWeight: 'bold',
+              color: '#e0e0e0',
+              fontFamily: 'system-ui, -apple-system, sans-serif',
+              textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+            }}>
+              {displayValue}
+            </span>
+          </div>
+          <span className="mt-2 text-xs font-semibold" style={{ color: '#7DEDDE' }}>
+            {label}
           </span>
         </div>
-        <span className="mt-2 text-xs font-semibold" style={{ color: '#7DEDDE' }}>
-          {label}
-        </span>
-      </div>
-    )
+      )
+    }
 
     return (
-      <div className="card flex items-center justify-center px-8">
-        <div className="flex items-center justify-between w-full max-w-md">
+      <div className="card flex items-center justify-center px-4 py-6">
+        <div className="flex items-center justify-between w-full max-w-lg gap-3">
           <FlipCard value={days} label="DIAS" />
           <FlipCard value={hours} label="HORAS" />
           <FlipCard value={minutes} label="MINUTOS" />
@@ -241,7 +247,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-between mb-4">
         <MotivationalQuote />
         <img 
-          src="/logo com nome.png" 
+          src="/logo nome.svg" 
           alt="Logo" 
           className="h-16 object-contain flex-shrink-0 mr-8"
         />
