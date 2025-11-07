@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     'core',
     'pacientes',
     'orcamentos',
+    'financeiro',
 ]
 
 MIDDLEWARE = [
@@ -97,6 +98,14 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 # Media files
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# Clinic header (personalização simples dos PDFs)
+CLINIC_NAME = os.getenv("CLINIC_NAME", "Clínica Odontológica")
+CLINIC_ADDRESS = os.getenv("CLINIC_ADDRESS", "Endereço: —")
+CLINIC_PHONE = os.getenv("CLINIC_PHONE", "Telefone: —")
+CLINIC_CRO = os.getenv("CLINIC_CRO", "CRO: —")
+# Caminho opcional para logotipo (PNG/JPG). Pode ser absoluto no container ou relativo ao BASE_DIR
+CLINIC_LOGO_PATH = os.getenv("CLINIC_LOGO_PATH", "")
 
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = DEBUG

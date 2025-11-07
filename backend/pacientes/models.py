@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 class Paciente(models.Model):
     nome = models.CharField(max_length=120)
@@ -55,3 +56,23 @@ class Anamnese(models.Model):
 
     def __str__(self) -> str:
         return f"Anamnese de {self.paciente.nome}"
+
+
+class Documento(models.Model):
+    """Documentos anexados ao cadastro do paciente."""
+    paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name="documentos")
+    arquivo = models.FileField(upload_to="documentos/%Y/%m/%d")
+    nome = models.CharField(max_length=255, blank=True)
+    content_type = models.CharField(max_length=120, blank=True)
+    tamanho = models.PositiveIntegerField(default=0)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-criado_em"]
+        indexes = [
+            models.Index(fields=["paciente"]),
+            models.Index(fields=["criado_em"]),
+        ]
+
+    def __str__(self) -> str:  # pragma: no cover
+        return f"Documento({self.id}) de {self.paciente.nome}: {self.nome or (self.arquivo.name if self.arquivo else '')}"

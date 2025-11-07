@@ -24,7 +24,7 @@ class Orcamento(models.Model):
 
 class OrcamentoItem(models.Model):
     orcamento = models.ForeignKey(Orcamento, on_delete=models.CASCADE, related_name="itens")
-    dente = models.IntegerField()
+    dente = models.IntegerField(null=True, blank=True)
     procedimento = models.CharField(max_length=255)
     valor = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     criado_em = models.DateTimeField(auto_now_add=True)

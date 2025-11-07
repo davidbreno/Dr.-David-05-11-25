@@ -85,29 +85,51 @@ export default function AnamneseTab({ pacienteId, pacienteNome }){
   if(loading) return <div className="card"><div className="flex justify-center py-8"><div className="spinner"/></div></div>
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      <div className="card">
-        <h2 className="text-xl font-bold text-white mb-4">Anamnese de {pacienteNome}</h2>
+    <div className="grid gap-6 lg:grid-cols-3">
+      {/* Coluna principal (2/3) */}
+      <div className="lg:col-span-2 space-y-6">
+        <div className="card">
+          <h2 className="text-xl font-bold text-white mb-4">Anamnese de {pacienteNome}</h2>
 
-        <Section title="Queixa principal">
-          <textarea className="input min-h-[90px]" value={f.queixa_principal} onChange={e=>setField('queixa_principal', e.target.value)} />
-        </Section>
+          <div className="grid gap-6 md:grid-cols-2">
+            <Section title="Queixa principal">
+              <textarea className="input min-h-[140px]" value={f.queixa_principal} onChange={e=>setField('queixa_principal', e.target.value)} />
+            </Section>
+            <Section title="Antecedentes médicos">
+              <textarea className="input min-h-[140px]" value={f.antecedentes_medicos} onChange={e=>setField('antecedentes_medicos', e.target.value)} />
+            </Section>
+          </div>
 
-        <Section title="Antecedentes médicos">
-          <textarea className="input min-h-[90px]" value={f.antecedentes_medicos} onChange={e=>setField('antecedentes_medicos', e.target.value)} />
-        </Section>
+          <div className="grid gap-6 md:grid-cols-2">
+            <Section title="Alergias">
+              <textarea className="input min-h-[120px]" value={f.alergias} onChange={e=>setField('alergias', e.target.value)} />
+            </Section>
+            <Section title="Medicações em uso">
+              <textarea className="input min-h-[120px]" value={f.medicamentos} onChange={e=>setField('medicamentos', e.target.value)} />
+            </Section>
+          </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <Section title="Alergias">
-            <textarea className="input min-h-[90px]" value={f.alergias} onChange={e=>setField('alergias', e.target.value)} />
-          </Section>
-          <Section title="Medicações em uso">
-            <textarea className="input min-h-[90px]" value={f.medicamentos} onChange={e=>setField('medicamentos', e.target.value)} />
+          <Section title="Outros">
+            <textarea className="input min-h-[100px]" value={f.outros} onChange={e=>setField('outros', e.target.value)} />
           </Section>
         </div>
 
-        <Section title="Condições">
-          <div className="grid grid-cols-2 gap-3">
+        <div className="sticky bottom-4 z-10">
+          <div className="card flex items-center justify-between gap-4 bg-[#1F2130]/90 backdrop-blur">
+            <div>
+              {msg && <span className="text-green-400 mr-4">{msg}</span>}
+              {erro && <span className="text-red-400">{erro}</span>}
+            </div>
+            <button type="button" className="btn btn-primary" onClick={save} disabled={saving}>{saving? 'Salvando...' : 'Salvar anamnese'}</button>
+          </div>
+        </div>
+      </div>
+
+      {/* Coluna lateral (1/3) */}
+      <div className="space-y-6">
+        <div className="card">
+          <h3 className="text-lg font-semibold text-white mb-3">Condições</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
               ['possui_diabetes','Diabetes'],
               ['possui_hipertensao','Hipertensão'],
@@ -124,9 +146,10 @@ export default function AnamneseTab({ pacienteId, pacienteNome }){
               </label>
             ))}
           </div>
-        </Section>
+        </div>
 
-        <Section title="Sinais vitais">
+        <div className="card">
+          <h3 className="text-lg font-semibold text-white mb-3">Sinais vitais</h3>
           <div className="grid grid-cols-3 gap-4">
             <div>
               <div className="text-sm text-gray-400 mb-1">PA Sistólica</div>
@@ -141,26 +164,16 @@ export default function AnamneseTab({ pacienteId, pacienteNome }){
               <input className="input" type="number" value={f.batimentos ?? ''} onChange={e=>setField('batimentos', e.target.value)} />
             </div>
           </div>
-        </Section>
-
-        <Section title="Outros">
-          <textarea className="input min-h-[90px]" value={f.outros} onChange={e=>setField('outros', e.target.value)} />
-        </Section>
-
-        <div className="flex items-center gap-3">
-          <button type="button" className="btn btn-primary" onClick={save} disabled={saving}>{saving? 'Salvando...' : 'Salvar anamnese'}</button>
-          {msg && <span className="text-green-400">{msg}</span>}
-          {erro && <span className="text-red-400">{erro}</span>}
         </div>
-      </div>
 
-      <div className="card">
-        <h3 className="text-lg font-semibold text-white mb-2">Dicas rápidas</h3>
-        <ul className="list-disc list-inside text-gray-300 space-y-2 text-sm">
-          <li>Marque condições relevantes e descreva detalhes em "Antecedentes".</li>
-          <li>Preencha PA e batimentos sempre que possível.</li>
-          <li>Use "Outros" para observações adicionais.</li>
-        </ul>
+        <div className="card">
+          <h3 className="text-lg font-semibold text-white mb-2">Dicas rápidas</h3>
+          <ul className="list-disc list-inside text-gray-300 space-y-2 text-sm">
+            <li>Marque condições relevantes e descreva detalhes em "Antecedentes".</li>
+            <li>Preencha PA e batimentos sempre que possível.</li>
+            <li>Use "Outros" para observações adicionais.</li>
+          </ul>
+        </div>
       </div>
     </div>
   )

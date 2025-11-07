@@ -34,12 +34,16 @@ services:
       DATABASE_USER: postgres
       DATABASE_PASSWORD: senha
       DATABASE_PORT: "5432"
+      CLINIC_NAME: "Dr. David Breno"
+      CLINIC_CRO: "CRO 71 476 MG"
+      CLINIC_PHONE: "38 9 99790464"
     ports:
       - "8000:8000"
     networks:
       - default
     volumes:
       - .:/app
+      - media:/app/media
 
 networks:
   default:
@@ -48,3 +52,5 @@ networks:
 volumes:
   pgdata:
     name: backend_pgdata
+  media:
+    name: backend_media

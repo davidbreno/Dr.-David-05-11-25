@@ -18,9 +18,10 @@ function AppContent() {
   const { isAuthenticated } = useAuth()
   
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen texture-grid">
       {isAuthenticated && <Sidebar />}
-      <div className={isAuthenticated ? "ml-64 min-h-screen" : "min-h-screen"}>
+      {/* Ajuste: margem esquerda igual à largura da sidebar (w-56) */}
+      <div className={isAuthenticated ? "ml-56 min-h-screen" : "min-h-screen"}>
         <div className="container mx-auto px-8 py-6">
           <Routes>
             <Route path="/login" element={<Login />} />
@@ -32,13 +33,11 @@ function AppContent() {
               <Route path="/pacientes/:id" element={<PacienteDetail />} />
               <Route path="/pacientes/:id/edit" element={<PacienteEdit />} />
               <Route path="/profile" element={<div className="text-white">Profile (Em construção)</div>} />
-              <Route path="/leaderboard" element={<div className="text-white">Leaderboard (Em construção)</div>} />
-              <Route path="/order" element={<div className="text-white">Order (Em construção)</div>} />
+              {/* Removidos: leaderboard, order */}
               <Route path="/sales-report" element={<div className="text-white">Sales Report (Em construção)</div>} />
               <Route path="/message" element={<div className="text-white">Message (Em construção)</div>} />
               <Route path="/settings" element={<div className="text-white">Settings (Em construção)</div>} />
-              <Route path="/favourite" element={<div className="text-white">Favourite (Em construção)</div>} />
-              <Route path="/history" element={<div className="text-white">History (Em construção)</div>} />
+              {/* Removidos: favourite, history */}
             </Route>
             <Route path="*" element={<div className="text-white">404 - Página não encontrada</div>} />
           </Routes>

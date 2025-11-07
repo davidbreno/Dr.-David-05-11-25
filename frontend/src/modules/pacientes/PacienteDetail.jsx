@@ -3,6 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client.js'
 import OrcamentosTab from './tabs/OrcamentosTab.jsx'
 import AnamneseTab from './tabs/AnamneseTab.jsx'
+import DocumentosTab from './tabs/DocumentosTab.jsx'
+import DebitosTab from './tabs/DebitosTab.jsx'
 
 export default function PacienteDetail() {
   const { id } = useParams()
@@ -10,7 +12,7 @@ export default function PacienteDetail() {
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState('')
   const [paciente, setPaciente] = useState(null)
-  const [tab, setTab] = useState('sobre') // sobre | consultas | mensagens | orcamentos | anamnese
+  const [tab, setTab] = useState('sobre') // sobre | consultas | mensagens | orcamentos | anamnese | documentos | debitos
   const [anamnese, setAnamnese] = useState(null)
   const [anamLoading, setAnamLoading] = useState(false)
   const [anamRefreshTick, setAnamRefreshTick] = useState(0)
@@ -107,6 +109,8 @@ export default function PacienteDetail() {
           <button className={`px-4 py-2 rounded-lg ${tab==='mensagens' ? 'bg-[#7DEDDE] text-[#1a1b26] font-semibold' : 'text-gray-300 hover:bg-[#21222D]'}`} onClick={() => setTab('mensagens')}>Mensagens</button>
           <button className={`px-4 py-2 rounded-lg ${tab==='orcamentos' ? 'bg-[#7DEDDE] text-[#1a1b26] font-semibold' : 'text-gray-300 hover:bg-[#21222D]'}`} onClick={() => setTab('orcamentos')}>Orçamentos</button>
           <button className={`px-4 py-2 rounded-lg ${tab==='anamnese' ? 'bg-[#7DEDDE] text-[#1a1b26] font-semibold' : 'text-gray-300 hover:bg-[#21222D]'}`} onClick={() => setTab('anamnese')}>Anamnese</button>
+          <button className={`px-4 py-2 rounded-lg ${tab==='documentos' ? 'bg-[#7DEDDE] text-[#1a1b26] font-semibold' : 'text-gray-300 hover:bg-[#21222D]'}`} onClick={() => setTab('documentos')}>Documentos</button>
+          <button className={`px-4 py-2 rounded-lg ${tab==='debitos' ? 'bg-[#7DEDDE] text-[#1a1b26] font-semibold' : 'text-gray-300 hover:bg-[#21222D]'}`} onClick={() => setTab('debitos')}>Débitos</button>
         </div>
       </div>
 
@@ -187,6 +191,14 @@ export default function PacienteDetail() {
 
       {tab === 'anamnese' && (
         <AnamneseTab pacienteId={paciente.id} pacienteNome={paciente.nome} />
+      )}
+
+      {tab === 'documentos' && (
+        <DocumentosTab pacienteId={paciente.id} pacienteNome={paciente.nome} />
+      )}
+
+      {tab === 'debitos' && (
+        <DebitosTab pacienteId={paciente.id} pacienteNome={paciente.nome} />
       )}
     </div>
   )

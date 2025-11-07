@@ -14,7 +14,11 @@ export default function OrcamentoEdit(){
     })()
   }, [id])
 
-  async function onSubmit(form){ await api.patch('/orcamentos/'+id+'/', form); nav('/orcamentos') }
+  async function onSubmit(form){
+    const payload = { ...form }
+    await api.patch('/orcamentos/'+id+'/', payload)
+    nav('/orcamentos')
+  }
 
   function openPdf(){
     const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000'
@@ -24,7 +28,7 @@ export default function OrcamentoEdit(){
   if(loading) return <div className="card"><div className="p-6 text-gray-300">Carregando...</div></div>
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-3xl">
       <div className="card">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-semibold">Editar Orçamento #{id}</h1>

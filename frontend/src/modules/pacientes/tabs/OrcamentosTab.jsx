@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../../api/client'
+import { proceduresCatalog, filterProcedures } from '../../orcamentos/proceduresCatalog.js'
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000'
 
@@ -514,12 +515,45 @@ export default function OrcamentosTab({ pacienteId, pacienteNome }){
   const [error, setError] = useState('')
   const [orcamentos, setOrcamentos] = useState([])
   const [editingId, setEditingId] = useState(null)
+  const [procSearch, setProcSearch] = useState('')
+  const chipsRef = useRef(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+
+  const filteredProcedures = useMemo(() => filterProcedures(procSearch), [procSearch])
 
   const total = useMemo(() => items.reduce((s,it)=> s + (Number(it.value)||0), 0), [items])
 
   function toggleTooth(n){
     setSelected(sel => sel.includes(n) ? sel.filter(x=>x!==n) : [...sel, n])
   }
+
+  useEffect(() => {
+    const node = chipsRef.current
+    if (!node) {
+      setCanScrollLeft(false)
+      setCanScrollRight(false)
+      return
+    }
+
+    const updateStatus = () => {
+      const { scrollLeft, scrollWidth, clientWidth } = node
+      setCanScrollLeft(scrollLeft > 4)
+      setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 4)
+    }
+
+    updateStatus()
+    node.addEventListener('scroll', updateStatus, { passive: true })
+    window.addEventListener('resize', updateStatus)
+    return () => {
+      node.removeEventListener('scroll', updateStatus)
+      window.removeEventListener('resize', updateStatus)
+    }
+  }, [filteredProcedures])
+
+  useEffect(() => {
+    if (chipsRef.current) chipsRef.current.scrollLeft = 0
+  }, [filteredProcedures])
 
   function addItems(){
     if(!treatment || !selected.length) return
@@ -531,6 +565,13 @@ export default function OrcamentosTab({ pacienteId, pacienteNome }){
 
   function removeItem(idx){ setItems(prev => prev.filter((_,i)=>i!==idx)) }
 
+  function scrollChips(direction){
+    const node = chipsRef.current
+    if (!node) return
+    const delta = direction === 'left' ? -240 : 240
+    node.scrollBy({ left: delta, behavior: 'smooth' })
+  }
+
   // Carrega últimos orçamentos deste paciente
   useEffect(() => {
     let ignore = false
@@ -539,11 +580,17 @@ export default function OrcamentosTab({ pacienteId, pacienteNome }){
         setError('')
         // usa search por nome para reduzir resultados, depois filtra por id
         const params = pacienteNome ? { params: { search: pacienteNome, ordering: '-criado_em' } } : { params: { ordering: '-criado_em' } }
-        const { data } = await api.get('/orcamentos/', params)
-        if (!ignore) {
-          const onlyMine = Array.isArray(data) ? data.filter(o => o.paciente === pacienteId) : []
-          setOrcamentos(onlyMine.slice(0, 5))
+        let { data } = await api.get('/orcamentos/', params)
+        let list = Array.isArray(data) ? data : (Array.isArray(data?.results) ? data.results : [])
+        let onlyMine = list.filter(o => o.paciente === pacienteId)
+        // Fallback: se a busca por nome não retornou, tenta sem search
+        if (onlyMine.length === 0 && pacienteNome) {
+          const res2 = await api.get('/orcamentos/', { params: { ordering: '-criado_em' } })
+          const data2 = res2.data
+          const list2 = Array.isArray(data2) ? data2 : (Array.isArray(data2?.results) ? data2.results : [])
+          onlyMine = list2.filter(o => o.paciente === pacienteId)
         }
+        if (!ignore) setOrcamentos(onlyMine.slice(0, 5))
       } catch (e) {
         // mantém silencioso, mas registra erro para debug opcional
         if (!ignore) setError('Não foi possível carregar os últimos orçamentos.')
@@ -556,8 +603,8 @@ export default function OrcamentosTab({ pacienteId, pacienteNome }){
   async function saveOrcamento(){
     setMessage('')
     setError('')
-    if (!pacienteId) { setError('Paciente inválido.'); return }
-    if (items.length === 0) { setError('Adicione pelo menos um tratamento.'); return }
+  if (!pacienteId) { setError('Paciente inválido.'); return }
+  if (items.length === 0) { setError('Adicione pelo menos um procedimento.'); return }
     try {
       setSaving(true)
       // Monta descrição amigável (texto) com os itens
@@ -661,10 +708,73 @@ export default function OrcamentosTab({ pacienteId, pacienteNome }){
 
   return (
     <div className="space-y-6">
-      {/* Formulário superior */}
+      {/* Barra de procedimentos (chips) */}
+      <div className="card">
+        <div className="flex items-center gap-2 mb-2">
+          <label className="text-sm text-gray-300">Procedimentos</label>
+          <input className="input flex-1" placeholder="Buscar procedimento..." value={procSearch} onChange={(e)=>setProcSearch(e.target.value)} />
+          <button className="btn" onClick={()=>setProcSearch('')}>Limpar</button>
+        </div>
+        {filteredProcedures.length > 0 ? (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="btn btn-secondary btn-xs"
+              onClick={()=>scrollChips('left')}
+              disabled={!canScrollLeft}
+              aria-label="Voltar procedimentos"
+            >
+              {'<'}
+            </button>
+            <div ref={chipsRef} className="flex-1 min-w-0 overflow-x-auto scroll-smooth">
+              <div className="flex gap-2 py-1 pr-2">
+                {filteredProcedures.map(p => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className="px-3 py-1.5 rounded-full bg-gray-800/60 hover:bg-gray-700/60 text-xs sm:text-sm border border-gray-700/50 flex-shrink-0 whitespace-nowrap"
+                    title={`Adicionar: ${p.name}`}
+                    onClick={() => {
+                      // Se houver dentes selecionados, adiciona os itens para cada dente
+                      if (selected.length > 0) {
+                        const val = Number(p.defaultValue) || 0
+                        const newItems = selected.map(n => ({ tooth: n, treatment: p.name, value: val }))
+                        setItems(prev => [...prev, ...newItems])
+                        setSelected([])
+                        setMessage(`${newItems.length} item(ns) adicionados: ${p.name}.`)
+                      } else {
+                        // Senão, apenas preenche os campos para o usuário confirmar
+                        setTreatment(p.name)
+                        if (!value) setValue(String(Number(p.defaultValue) || 0))
+                      }
+                    }}
+                  >
+                    {p.name}
+                    <span className="ml-2 text-[10px] text-gray-400">R$ {p.defaultValue}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn btn-secondary btn-xs"
+              onClick={()=>scrollChips('right')}
+              disabled={!canScrollRight}
+              aria-label="Avançar procedimentos"
+            >
+              {'>'}
+            </button>
+          </div>
+        ) : (
+          <div className="text-xs text-gray-400">Nenhum procedimento encontrado.</div>
+        )}
+        <div className="mt-2 text-xs text-gray-400">Dica: selecione os dentes no odontograma e clique em um chip para adicionar rapidamente.</div>
+      </div>
+
+      {/* Formulário superior (manual) */}
       <div className="grid gap-4 md:grid-cols-4">
         <div className="md:col-span-2">
-          <label className="block text-sm mb-2 text-gray-300">Tratamento</label>
+          <label className="block text-sm mb-2 text-gray-300">Procedimento</label>
           <input className="input" placeholder="Ex.: Restauração em resina"
             value={treatment} onChange={e=>setTreatment(e.target.value)} />
         </div>
@@ -673,7 +783,7 @@ export default function OrcamentosTab({ pacienteId, pacienteNome }){
           <input className="input" placeholder="0,00" value={value} onChange={e=>setValue(e.target.value)} />
         </div>
         <div className="flex items-end">
-          <button className="btn btn-primary w-full" onClick={addItems}>Adicionar tratamento</button>
+          <button className="btn btn-primary w-full" onClick={addItems}>Adicionar procedimento</button>
         </div>
       </div>
 
@@ -700,7 +810,7 @@ export default function OrcamentosTab({ pacienteId, pacienteNome }){
       {/* Lista de procedimentos */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-white font-semibold">Tratamentos</h3>
+          <h3 className="text-white font-semibold">Procedimentos</h3>
           <div className="text-gray-300">Total: <span className="text-white font-bold">R$ {total.toFixed(2)}</span></div>
         </div>
         {error && (
@@ -710,7 +820,7 @@ export default function OrcamentosTab({ pacienteId, pacienteNome }){
           <div className="mb-3 text-sm text-emerald-300 bg-emerald-900/20 border border-emerald-700/40 rounded px-3 py-2">{message}</div>
         )}
         {items.length === 0 ? (
-          <div className="text-gray-400">Nenhum tratamento adicionado ainda.</div>
+          <div className="text-gray-400">Nenhum procedimento adicionado ainda.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

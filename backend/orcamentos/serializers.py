@@ -2,7 +2,15 @@ from rest_framework import serializers
 from django.db import transaction
 from .models import Orcamento, OrcamentoItem
 
+
+class EmptyIsNoneIntegerField(serializers.IntegerField):
+    def to_internal_value(self, data):
+        if data in ("", None):
+            return None
+        return super().to_internal_value(data)
+
 class OrcamentoItemSerializer(serializers.ModelSerializer):
+    dente = EmptyIsNoneIntegerField(required=False, allow_null=True)
     class Meta:
         model = OrcamentoItem
         fields = ["id", "dente", "procedimento", "valor", "criado_em"]
@@ -37,13 +45,16 @@ class OrcamentoSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def create(self, validated_data):
-        itens_data = validated_data.pop("itens", [])
-        # calcula total a partir dos itens, se informado substitui
-        total = self._recalc_total(itens_data)
-        validated_data["valor_total"] = total
+        itens_data = validated_data.pop("itens", None)
+        # Se itens vierem no payload, o total deve ser recalculado a partir deles.
+        # Caso contrário, respeita o valor_total informado (ou 0 por padrão).
+        if itens_data is not None:
+            total = self._recalc_total(itens_data)
+            validated_data["valor_total"] = total
         orc = Orcamento.objects.create(**validated_data)
-        for it in itens_data:
-            OrcamentoItem.objects.create(orcamento=orc, **it)
+        if itens_data is not None:
+            for it in itens_data:
+                OrcamentoItem.objects.create(orcamento=orc, **it)
         return orc
 
     @transaction.atomic
