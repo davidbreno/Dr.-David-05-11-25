@@ -68,14 +68,16 @@ export default function Dashboard() {
     <div className="card">
       <div className="flex items-center gap-4">
         <div style={{ 
-          background: '#1a1b26', 
+          background: 'var(--surface-tile)', 
           padding: '32px', 
           borderRadius: '16px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           minWidth: '100px',
-          minHeight: '100px'
+          minHeight: '100px',
+          border: '1px solid var(--surface-tile-border)',
+          boxShadow: '0 16px 32px color-mix(in srgb, var(--surface-tile-border) 35%, transparent)'
         }}>
           <div style={{ transform: 'scale(1.8)' }}>
             {icon}
@@ -214,7 +216,7 @@ export default function Dashboard() {
               {displayValue}
             </span>
           </div>
-          <span className="mt-2 text-xs font-semibold" style={{ color: '#7DEDDE' }}>
+          <span className="mt-2 text-xs font-semibold" style={{ color: 'var(--accent)' }}>
             {label}
           </span>
         </div>
@@ -271,14 +273,15 @@ export default function Dashboard() {
         <Link to="/pacientes/new" className="card transition-all cursor-pointer">
           <div className="flex items-center gap-4">
             <div style={{ 
-              background: '#1a1b26', 
+              background: 'var(--surface-tile)', 
               padding: '32px', 
               borderRadius: '16px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               minWidth: '100px',
-              minHeight: '100px'
+              minHeight: '100px',
+              border: '1px solid var(--surface-tile-border)'
             }}>
               <svg className="w-12 h-12 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
@@ -295,14 +298,15 @@ export default function Dashboard() {
         <Link to="/pacientes" className="card transition-all cursor-pointer">
           <div className="flex items-center gap-4">
             <div style={{ 
-              background: '#1a1b26', 
+              background: 'var(--surface-tile)', 
               padding: '32px', 
               borderRadius: '16px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               minWidth: '100px',
-              minHeight: '100px'
+              minHeight: '100px',
+              border: '1px solid var(--surface-tile-border)'
             }}>
               <svg className="w-12 h-12 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -411,8 +415,8 @@ export default function Dashboard() {
             >
               <defs>
                 <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#7DEDDE" stopOpacity={0.8}/>
-                  <stop offset="100%" stopColor="#7DEDDE" stopOpacity={0.1}/>
+                  <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.8}/>
+                  <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.1}/>
                 </linearGradient>
               </defs>
               <XAxis 
@@ -440,7 +444,7 @@ export default function Dashboard() {
               <Area 
                 type="linear" 
                 dataKey="value" 
-                stroke="#7DEDDE" 
+                stroke="var(--accent)" 
                 strokeWidth={2}
                 fill="url(#colorValue)" 
               />
@@ -472,8 +476,8 @@ export default function Dashboard() {
                   <stop offset="100%" stopColor="#FF69B4" stopOpacity={0.1}/>
                 </linearGradient>
                 <linearGradient id="thisMonth" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#7DEDDE" stopOpacity={0.8}/>
-                  <stop offset="100%" stopColor="#7DEDDE" stopOpacity={0.1}/>
+                  <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.8}/>
+                  <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.1}/>
                 </linearGradient>
               </defs>
               <Area 
@@ -486,7 +490,7 @@ export default function Dashboard() {
               <Area 
                 type="linear" 
                 dataKey="thisMonth" 
-                stroke="#7DEDDE" 
+                stroke="var(--accent)" 
                 strokeWidth={2}
                 fill="url(#thisMonth)" 
               />
@@ -499,7 +503,7 @@ export default function Dashboard() {
               <span className="text-white font-semibold">$4,087</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full" style={{ background: '#7DEDDE' }}></div>
+              <div className="w-2 h-2 rounded-full" style={{ background: 'var(--accent)' }}></div>
               <span className="text-gray-400">This Month</span>
               <span className="text-white font-semibold">$5,506</span>
             </div>
@@ -559,14 +563,14 @@ export default function Dashboard() {
                 <div className="w-full bg-gray-800 rounded-full h-2">
                   <div className="h-2 rounded-full" style={{ 
                     width: '10%', 
-                    background: 'linear-gradient(90deg, #00FFFF 0%, #7DEDDE 100%)' 
+                    background: 'linear-gradient(90deg, color-mix(in srgb, var(--accent) 50%, #ffffff 50%) 0%, var(--accent) 100%)' 
                   }}></div>
                 </div>
               </div>
               <div className="col-span-2 text-right">
                 <span className="px-3 py-1 rounded-md text-sm font-semibold" style={{ 
-                  border: '1px solid #00FFFF',
-                  color: '#7DEDDE'
+                  border: '1px solid color-mix(in srgb, var(--accent) 75%, transparent)',
+                  color: 'var(--accent)'
                 }}>10%</span>
               </div>
             </div>
@@ -591,8 +595,8 @@ export default function Dashboard() {
             >
               <defs>
                 <linearGradient id="volumeGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#7DEDDE" stopOpacity={0.9}/>
-                  <stop offset="100%" stopColor="#7DEDDE" stopOpacity={0.3}/>
+                  <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.9}/>
+                  <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.3}/>
                 </linearGradient>
                 <linearGradient id="serviceGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#4A5568" stopOpacity={0.8}/>
@@ -615,7 +619,7 @@ export default function Dashboard() {
           </ResponsiveContainer>
           <div className="flex items-center justify-between px-4 text-xs">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full" style={{ background: '#7DEDDE' }}></div>
+              <div className="w-2 h-2 rounded-full" style={{ background: 'var(--accent)' }}></div>
               <span className="text-gray-400">Volume</span>
             </div>
             <div className="flex items-center gap-2">

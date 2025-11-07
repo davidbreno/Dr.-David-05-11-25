@@ -5,6 +5,7 @@ import OrcamentosTab from './tabs/OrcamentosTab.jsx'
 import AnamneseTab from './tabs/AnamneseTab.jsx'
 import DocumentosTab from './tabs/DocumentosTab.jsx'
 import DebitosTab from './tabs/DebitosTab.jsx'
+import PrescricaoTab from './tabs/PrescricaoTab.jsx'
 
 export default function PacienteDetail() {
   const { id } = useParams()
@@ -12,7 +13,7 @@ export default function PacienteDetail() {
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState('')
   const [paciente, setPaciente] = useState(null)
-  const [tab, setTab] = useState('sobre') // sobre | consultas | mensagens | orcamentos | anamnese | documentos | debitos
+  const [tab, setTab] = useState('sobre') // sobre | consultas | mensagens | orcamentos | anamnese | documentos | debitos | prescricao
   const [anamnese, setAnamnese] = useState(null)
   const [anamLoading, setAnamLoading] = useState(false)
   const [anamRefreshTick, setAnamRefreshTick] = useState(0)
@@ -104,13 +105,14 @@ export default function PacienteDetail() {
         </div>
         {/* Tabs */}
         <div className="mt-6 flex gap-2 flex-wrap">
-          <button className={`px-4 py-2 rounded-lg ${tab==='sobre' ? 'bg-[#7DEDDE] text-[#1a1b26] font-semibold' : 'text-gray-300 hover:bg-[#21222D]'}`} onClick={() => setTab('sobre')}>Dados pessoais</button>
-          <button className={`px-4 py-2 rounded-lg ${tab==='consultas' ? 'bg-[#7DEDDE] text-[#1a1b26] font-semibold' : 'text-gray-300 hover:bg-[#21222D]'}`} onClick={() => setTab('consultas')}>Consultas</button>
-          <button className={`px-4 py-2 rounded-lg ${tab==='mensagens' ? 'bg-[#7DEDDE] text-[#1a1b26] font-semibold' : 'text-gray-300 hover:bg-[#21222D]'}`} onClick={() => setTab('mensagens')}>Mensagens</button>
-          <button className={`px-4 py-2 rounded-lg ${tab==='orcamentos' ? 'bg-[#7DEDDE] text-[#1a1b26] font-semibold' : 'text-gray-300 hover:bg-[#21222D]'}`} onClick={() => setTab('orcamentos')}>Orçamentos</button>
-          <button className={`px-4 py-2 rounded-lg ${tab==='anamnese' ? 'bg-[#7DEDDE] text-[#1a1b26] font-semibold' : 'text-gray-300 hover:bg-[#21222D]'}`} onClick={() => setTab('anamnese')}>Anamnese</button>
-          <button className={`px-4 py-2 rounded-lg ${tab==='documentos' ? 'bg-[#7DEDDE] text-[#1a1b26] font-semibold' : 'text-gray-300 hover:bg-[#21222D]'}`} onClick={() => setTab('documentos')}>Documentos</button>
-          <button className={`px-4 py-2 rounded-lg ${tab==='debitos' ? 'bg-[#7DEDDE] text-[#1a1b26] font-semibold' : 'text-gray-300 hover:bg-[#21222D]'}`} onClick={() => setTab('debitos')}>Débitos</button>
+          <button className={`tab-pill${tab==='sobre' ? ' active' : ''}`} onClick={() => setTab('sobre')}>Dados pessoais</button>
+          <button className={`tab-pill${tab==='consultas' ? ' active' : ''}`} onClick={() => setTab('consultas')}>Consultas</button>
+          <button className={`tab-pill${tab==='mensagens' ? ' active' : ''}`} onClick={() => setTab('mensagens')}>Mensagens</button>
+          <button className={`tab-pill${tab==='orcamentos' ? ' active' : ''}`} onClick={() => setTab('orcamentos')}>Orçamentos</button>
+          <button className={`tab-pill${tab==='anamnese' ? ' active' : ''}`} onClick={() => setTab('anamnese')}>Anamnese</button>
+          <button className={`tab-pill${tab==='documentos' ? ' active' : ''}`} onClick={() => setTab('documentos')}>Documentos</button>
+          <button className={`tab-pill${tab==='debitos' ? ' active' : ''}`} onClick={() => setTab('debitos')}>Débitos</button>
+          <button className={`tab-pill${tab==='prescricao' ? ' active' : ''}`} onClick={() => setTab('prescricao')}>Prescrição</button>
         </div>
       </div>
 
@@ -199,6 +201,10 @@ export default function PacienteDetail() {
 
       {tab === 'debitos' && (
         <DebitosTab pacienteId={paciente.id} pacienteNome={paciente.nome} />
+      )}
+
+      {tab === 'prescricao' && (
+        <PrescricaoTab pacienteId={paciente.id} pacienteNome={paciente.nome} pacienteDados={paciente} />
       )}
     </div>
   )

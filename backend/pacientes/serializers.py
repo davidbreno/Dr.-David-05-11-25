@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Paciente, Anamnese, Documento
+from .models import Paciente, Anamnese, Documento, Prescricao
 
 class PacienteSerializer(serializers.ModelSerializer):
     class Meta:
@@ -76,3 +76,49 @@ class DocumentoSerializer(serializers.ModelSerializer):
                 doc.tamanho = 0
         doc.save()
         return doc
+
+
+class PrescricaoItemSerializer(serializers.Serializer):
+    classe_nome = serializers.CharField(required=False, allow_blank=True)
+    nome = serializers.CharField()
+    dose = serializers.CharField(allow_blank=True, required=False)
+    frequencia = serializers.CharField(allow_blank=True, required=False)
+    duracao = serializers.CharField(allow_blank=True, required=False)
+    orientacoes = serializers.CharField(allow_blank=True, required=False)
+
+
+class PrescricaoSerializer(serializers.ModelSerializer):
+    itens = PrescricaoItemSerializer(many=True)
+
+    class Meta:
+        model = Prescricao
+        fields = [
+            "id",
+            "paciente",
+            "profissional",
+            "cro",
+            "observacoes",
+            "itens",
+            "criado_em",
+            "atualizado_em",
+        ]
+        read_only_fields = ["id", "criado_em", "atualizado_em"]
+
+    def validate_itens(self, value):
+        if not value:
+            raise serializers.ValidationError("Inclua ao menos um item na prescrição.")
+        return value
+
+    def create(self, validated_data):
+        itens = validated_data.pop("itens", [])
+        instance = Prescricao.objects.create(**validated_data, itens=itens)
+        return instance
+
+    def update(self, instance, validated_data):
+        itens = validated_data.pop("itens", None)
+        for attr, val in validated_data.items():
+            setattr(instance, attr, val)
+        if itens is not None:
+            instance.itens = itens
+        instance.save()
+        return instance

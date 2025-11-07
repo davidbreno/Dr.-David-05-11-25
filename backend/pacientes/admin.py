@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Paciente, Anamnese, Documento
+from .models import Paciente, Anamnese, Documento, Prescricao
 
 class AnamneseInline(admin.StackedInline):
     model = Anamnese
@@ -29,4 +29,12 @@ class DocumentoAdmin(admin.ModelAdmin):
     list_display = ("id", "paciente", "nome", "content_type", "tamanho", "criado_em")
     search_fields = ("paciente__nome", "nome", "content_type")
     list_filter = ("content_type", "criado_em")
+    ordering = ("-criado_em",)
+
+
+@admin.register(Prescricao)
+class PrescricaoAdmin(admin.ModelAdmin):
+    list_display = ("id", "paciente", "profissional", "cro", "criado_em")
+    search_fields = ("paciente__nome", "paciente__cpf", "profissional", "cro")
+    list_filter = ("criado_em",)
     ordering = ("-criado_em",)

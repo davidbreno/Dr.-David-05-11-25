@@ -7,12 +7,18 @@ from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import DjangoModelPermissions, AllowAny
 from rest_framework.response import Response
-from .models import Paciente, Anamnese, Documento
-from .serializers import PacienteSerializer, AnamneseSerializer, DocumentoSerializer
+from .models import Paciente, Anamnese, Documento, Prescricao
+from .serializers import (
+    PacienteSerializer,
+    AnamneseSerializer,
+    DocumentoSerializer,
+    PrescricaoSerializer,
+)
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import cm
 from reportlab.lib.utils import ImageReader
+import copy
 
 class PacienteViewSet(viewsets.ModelViewSet):
     queryset = Paciente.objects.all()
@@ -399,3 +405,216 @@ class DocumentoViewSet(viewsets.ModelViewSet):
 
         pdf = self._finish_pdf(c, buf)
         return pdf, "Termo_Hipertensao"
+
+
+class PrescricaoViewSet(viewsets.ModelViewSet):
+    queryset = Prescricao.objects.select_related("paciente").all()
+    serializer_class = PrescricaoSerializer
+    permission_classes = [AllowAny]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["paciente__nome", "profissional", "cro"]
+    ordering_fields = ["criado_em", "atualizado_em"]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        paciente_id = self.request.query_params.get("paciente")
+        if paciente_id:
+            qs = qs.filter(paciente_id=paciente_id)
+        return qs
+
+    def perform_create(self, serializer):
+        return serializer.save()
+
+    @action(detail=True, methods=["post"], url_path="exportar")
+    def exportar(self, request, pk=None):
+        prescricao = self.get_object()
+        pdf_bytes = self._build_prescricao_pdf(prescricao)
+        pdf_bytes = self._apply_template(pdf_bytes)
+
+        hoje = datetime.now().strftime("%Y-%m-%d")
+        titulo = f"Prescrição"
+        filename = f"prescricao_{prescricao.paciente.nome}_{prescricao.id}_{hoje}.pdf".replace(" ", "_")
+        content = ContentFile(pdf_bytes, name=filename)
+        doc = Documento(paciente=prescricao.paciente)
+        doc.arquivo.save(filename, content, save=True)
+        doc.nome = f"Prescrição #{prescricao.id}"
+        doc.content_type = "application/pdf"
+        doc.tamanho = len(pdf_bytes)
+        doc.save()
+
+        data = DocumentoSerializer(doc, context={"request": request}).data
+        download_url = data.get("url") or data.get("arquivo")
+        return Response(
+            {
+                "detail": "PDF gerado e salvo nos documentos do paciente.",
+                "documento": data,
+                "download_url": download_url,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    # --------- Helpers ---------
+    def _pdf_canvas(self):
+        buf = io.BytesIO()
+        c = canvas.Canvas(buf, pagesize=A4)
+        return c, buf
+
+    def _finish_pdf(self, c, buf):
+        c.showPage(); c.save()
+        return buf.getvalue()
+
+    def _draw_header(self, c, titulo, prescricao):
+        w, h = A4
+        logo_path = getattr(settings, "CLINIC_LOGO_PATH", "") or ""
+        if logo_path:
+            try:
+                p = logo_path
+                if not os.path.isabs(p):
+                    p = os.path.join(settings.BASE_DIR, p)
+                if os.path.exists(p):
+                    img = ImageReader(p)
+                    c.drawImage(img, w - 5 * cm, h - 3 * cm, width=3 * cm, height=3 * cm, preserveAspectRatio=True, mask='auto')
+            except Exception:
+                pass
+
+        clinic_name = getattr(settings, "CLINIC_NAME", "Clínica Odontológica")
+        address = getattr(settings, "CLINIC_ADDRESS", "Endereço: —")
+        phone = getattr(settings, "CLINIC_PHONE", "Telefone: —")
+        cro = getattr(settings, "CLINIC_CRO", "CRO: —")
+
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(2 * cm, h - 2 * cm, clinic_name)
+        c.setFont("Helvetica", 10)
+        c.drawString(2 * cm, h - 2.6 * cm, f"{address} | {phone} | {cro}")
+        c.setFont("Helvetica-Bold", 14)
+        c.drawString(2 * cm, h - 3.4 * cm, titulo)
+        c.line(2 * cm, h - 3.6 * cm, w - 2 * cm, h - 3.6 * cm)
+
+    def _draw_text_block(self, c, text, x, y, font="Helvetica", size=11, leading=14, max_chars=95):
+        import textwrap
+
+        c.setFont(font, size)
+        lines = []
+        for part in str(text).split("\n"):
+            lines.extend(textwrap.wrap(part, max_chars) or [""])
+        for line in lines:
+            c.drawString(x, y, line)
+            y -= leading / 10 * cm
+        return y
+
+    def _build_prescricao_pdf(self, prescricao):
+        c, buf = self._pdf_canvas()
+        w, h = A4
+        self._draw_header(c, "Prescrição Odontológica", prescricao)
+
+        y = h - 4.5 * cm
+        data_txt = datetime.now().strftime("%d/%m/%Y")
+        paciente = prescricao.paciente
+
+        c.setFont("Helvetica", 12)
+        c.drawString(2 * cm, y, f"Paciente: {paciente.nome}")
+        y -= 0.7 * cm
+        if paciente.cpf:
+            c.drawString(2 * cm, y, f"CPF: {paciente.cpf}")
+            y -= 0.7 * cm
+        if paciente.data_nascimento:
+            c.drawString(2 * cm, y, f"Data de nascimento: {paciente.data_nascimento.strftime('%d/%m/%Y')}")
+            y -= 0.7 * cm
+        c.drawString(2 * cm, y, f"Data da prescrição: {data_txt}")
+        y -= 1.0 * cm
+
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(2 * cm, y, "Medicamentos prescritos:")
+        y -= 0.8 * cm
+
+        c.setFont("Helvetica", 11)
+        for idx, item in enumerate(prescricao.itens or [], start=1):
+            if y < 4 * cm:
+                c.showPage()
+                self._draw_header(c, "Prescrição Odontológica", prescricao)
+                y = h - 4.5 * cm
+                c.setFont("Helvetica", 11)
+            c.drawString(2.1 * cm, y, f"{idx}. {item.get('nome', '—')}")
+            y -= 0.6 * cm
+            campos = [
+                ("Classe", item.get("classe_nome")),
+                ("Dose", item.get("dose")),
+                ("Frequência", item.get("frequencia")),
+                ("Duração", item.get("duracao")),
+            ]
+            for label, value in campos:
+                if value:
+                    c.drawString(2.4 * cm, y, f"{label}: {value}")
+                    y -= 0.5 * cm
+            orient = item.get("orientacoes")
+            if orient:
+                c.drawString(2.4 * cm, y, "Orientações:")
+                y -= 0.5 * cm
+                c.setFont("Helvetica", 10)
+                wrapper = self._draw_text_block(c, orient, 2.6 * cm, y + 0.3 * cm, font="Helvetica", size=10, leading=13, max_chars=90)
+                y = wrapper - 0.2 * cm
+                c.setFont("Helvetica", 11)
+            y -= 0.4 * cm
+
+        if prescricao.observacoes:
+            if y < 5 * cm:
+                c.showPage()
+                self._draw_header(c, "Prescrição Odontológica", prescricao)
+                y = h - 4.5 * cm
+            c.setFont("Helvetica-Bold", 11)
+            c.drawString(2 * cm, y, "Observações adicionais:")
+            y -= 0.6 * cm
+            c.setFont("Helvetica", 10)
+            y = self._draw_text_block(c, prescricao.observacoes, 2.2 * cm, y + 0.3 * cm, font="Helvetica", size=10, leading=13, max_chars=95) - 0.3 * cm
+
+        y -= 1.2 * cm
+        c.setFont("Helvetica", 11)
+        responsavel = prescricao.profissional or getattr(settings, "CLINIC_RESPONSAVEL_PADRAO", "")
+        cro = prescricao.cro or getattr(settings, "CLINIC_CRO", "")
+        if responsavel:
+            c.drawString(2 * cm, y, f"Profissional responsável: {responsavel}")
+            y -= 0.6 * cm
+        if cro:
+            c.drawString(2 * cm, y, f"CRO: {cro}")
+            y -= 0.8 * cm
+
+        # Assinatura
+        c.line(2 * cm, y, 10 * cm, y)
+        c.drawString(2 * cm, y - 0.5 * cm, "Assinatura do profissional")
+
+        pdf = self._finish_pdf(c, buf)
+        return pdf
+
+    def _apply_template(self, pdf_bytes: bytes) -> bytes:
+        template_path = getattr(settings, "PRESCRIPTION_TEMPLATE_PATH", "") or ""
+        if not template_path:
+            return pdf_bytes
+        try:
+            from PyPDF2 import PdfReader, PdfWriter
+        except ImportError:
+            return pdf_bytes
+
+        path = template_path
+        if not os.path.isabs(path):
+            path = os.path.join(settings.BASE_DIR, path)
+        if not os.path.exists(path):
+            return pdf_bytes
+
+        try:
+            with open(path, "rb") as template_file:
+                template_reader = PdfReader(template_file)
+                overlay_reader = PdfReader(io.BytesIO(pdf_bytes))
+                writer = PdfWriter()
+                total_template = len(template_reader.pages)
+                for idx, overlay_page in enumerate(overlay_reader.pages):
+                    base_index = idx if idx < total_template else total_template - 1
+                    base_page = copy.copy(template_reader.pages[base_index])
+                    base_page.merge_page(overlay_page)
+                    writer.add_page(base_page)
+                out_stream = io.BytesIO()
+                writer.write(out_stream)
+                return out_stream.getvalue()
+        except Exception:
+            return pdf_bytes
+
+        return pdf_bytes

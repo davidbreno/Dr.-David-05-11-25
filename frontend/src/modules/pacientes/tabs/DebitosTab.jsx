@@ -186,17 +186,17 @@ export default function DebitosTab({ pacienteId, pacienteNome }) {
   return (
     <div className="space-y-6">
       <div className="card">
-        <div className="flex gap-4 border-b border-gray-800/80 mb-4">
+        <div className="flex gap-2 border-b border-gray-800/80 mb-4">
           <button
             type="button"
-            className={`px-4 py-2 text-sm ${innerTab==='novo' ? 'border-b-2 border-[#7DEDDE] text-white font-semibold' : 'text-gray-400'}`}
+            className={`inner-tab text-sm${innerTab==='novo' ? ' active' : ''}`}
             onClick={() => setInnerTab('novo')}
           >
             Novo débito
           </button>
           <button
             type="button"
-            className={`px-4 py-2 text-sm ${innerTab==='documentos' ? 'border-b-2 border-[#7DEDDE] text-white font-semibold' : 'text-gray-400'}`}
+            className={`inner-tab text-sm${innerTab==='documentos' ? ' active' : ''}`}
             onClick={() => setInnerTab('documentos')}
           >
             Documentos
@@ -268,7 +268,7 @@ export default function DebitosTab({ pacienteId, pacienteNome }) {
             </div>
 
             <div>
-              <button type="button" className="text-[#7DEDDE] text-sm font-semibold" onClick={addItem}>
+              <button type="button" className="accent-text text-sm font-semibold" onClick={addItem}>
                 ADICIONAR OUTRO PROCEDIMENTO
               </button>
             </div>

@@ -76,3 +76,22 @@ class Documento(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover
         return f"Documento({self.id}) de {self.paciente.nome}: {self.nome or (self.arquivo.name if self.arquivo else '')}"
+
+
+class Prescricao(models.Model):
+    paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name="prescricoes")
+    profissional = models.CharField(max_length=120, blank=True)
+    cro = models.CharField(max_length=30, blank=True)
+    observacoes = models.TextField(blank=True)
+    itens = models.JSONField(default=list)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-criado_em"]
+        indexes = [
+            models.Index(fields=["paciente", "criado_em"]),
+        ]
+
+    def __str__(self) -> str:  # pragma: no cover
+        return f"Prescrição #{self.id} de {self.paciente.nome}"
