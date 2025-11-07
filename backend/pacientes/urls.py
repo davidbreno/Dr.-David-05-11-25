@@ -9,6 +9,9 @@ router = DefaultRouter()
 router.register(r'documentos', views.DocumentoViewSet, basename='documento')
 router.register(r'anamneses', views.AnamneseViewSet, basename='anamnese')
 router.register(r'prescricoes', views.PrescricaoViewSet, basename='prescricao')
+router.register(r'convites/importacoes', views.ConviteImportacaoViewSet, basename='convite-importacao')
+router.register(r'convites/mensagens', views.ConviteMensagemViewSet, basename='convite-mensagem')
+router.register(r'convites', views.ConviteContatoViewSet, basename='convite-contato')
 router.register(r'', views.PacienteViewSet, basename='paciente')
 
 urlpatterns = router.urls

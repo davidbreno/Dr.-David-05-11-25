@@ -15,6 +15,8 @@ import PacientesList from './modules/pacientes/PacientesList.jsx'
 import PacienteCreate from './modules/pacientes/PacienteCreate.jsx'
 import PacienteEdit from './modules/pacientes/PacienteEdit.jsx'
 import PacienteDetail from './modules/pacientes/PacienteDetail.jsx'
+import MensagensPage from './modules/mensagens/MensagensPage.jsx'
+import EstoquePage from './modules/estoque/EstoquePage.jsx'
 
 function AppContent() {
   const { isAuthenticated } = useAuth()
@@ -38,9 +40,10 @@ function AppContent() {
               <Route path="/pacientes/new" element={<PacienteCreate />} />
               <Route path="/pacientes/:id" element={<PacienteDetail />} />
               <Route path="/pacientes/:id/edit" element={<PacienteEdit />} />
+              <Route path="/estoque" element={<EstoquePage />} />
               <Route path="/profile" element={<div style={{ color: 'var(--text-color)' }}>Profile (Em construção)</div>} />
               <Route path="/sales-report" element={<div style={{ color: 'var(--text-color)' }}>Sales Report (Em construção)</div>} />
-              <Route path="/message" element={<div style={{ color: 'var(--text-color)' }}>Message (Em construção)</div>} />
+              <Route path="/mensagens" element={<MensagensPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
             <Route path="*" element={<div style={{ color: 'var(--text-color)' }}>404 - Página não encontrada</div>} />

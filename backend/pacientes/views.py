@@ -1,24 +1,91 @@
+import csv
 import io, os
+import re
 from datetime import datetime
 from django.core.files.base import ContentFile
+from django.db import transaction
+from django.db.models import Q
+from django.utils import timezone
 from django.conf import settings
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.permissions import DjangoModelPermissions, AllowAny
 from rest_framework.response import Response
-from .models import Paciente, Anamnese, Documento, Prescricao
+from .models import (
+    Paciente,
+    Anamnese,
+    Documento,
+    Prescricao,
+    ConviteContato,
+    ConviteImportacao,
+    ConviteMensagem,
+)
 from .serializers import (
     PacienteSerializer,
     AnamneseSerializer,
     DocumentoSerializer,
     PrescricaoSerializer,
+    ConviteContatoSerializer,
+    ConviteImportacaoSerializer,
+    ConviteMensagemSerializer,
+    ConviteEnvioSerializer,
 )
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import cm
 from reportlab.lib.utils import ImageReader
 import copy
+
+CSV_EXPECTED_COLUMNS = {"nome", "cpf", "telefone", "data_nascimento", "idade", "origem"}
+CSV_REQUIRED_COLUMNS = {"nome", "telefone"}
+IMPORT_MAX_LOG = 50
+
+
+def _normalizar_digitos(valor: str) -> str:
+    return "".join(ch for ch in (valor or "") if ch.isdigit())
+
+
+def _parse_data(value: str):
+    if not value:
+        return None
+    value = value.strip()
+    if not value:
+        return None
+    formatos = ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y")
+    for fmt in formatos:
+        try:
+            return datetime.strptime(value, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def _calcular_idade(data_nascimento):
+    from django.utils import timezone
+
+    if not data_nascimento:
+        return None
+    hoje = timezone.localdate()
+    anos = hoje.year - data_nascimento.year - (
+        (hoje.month, hoje.day) < (data_nascimento.month, data_nascimento.day)
+    )
+    return max(anos, 0)
+
+
+def _normalize_header_text(text: str) -> str:
+    return "".join(ch for ch in (text or "").lower() if ch.isalnum())
+
+
+def _strip_decimal_tail(value: str) -> str:
+    value = (value or "").strip()
+    if not value:
+        return value
+    if "." in value:
+        left, _, right = value.partition(".")
+        if right.strip("0") == "":
+            return left
+    return value
 
 class PacienteViewSet(viewsets.ModelViewSet):
     queryset = Paciente.objects.all()
@@ -618,3 +685,318 @@ class PrescricaoViewSet(viewsets.ModelViewSet):
             return pdf_bytes
 
         return pdf_bytes
+
+
+class ConviteImportacaoViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = ConviteImportacao.objects.all()
+    serializer_class = ConviteImportacaoSerializer
+    permission_classes = [AllowAny]
+    parser_classes = [MultiPartParser, FormParser]
+    http_method_names = ["get", "post", "head", "options"]
+
+    def create(self, request, *args, **kwargs):
+        arquivo = request.FILES.get("arquivo")
+        if not arquivo:
+            return Response(
+                {"detail": "Envie um arquivo CSV utilizando o campo 'arquivo'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        origem = (request.data.get("origem") or "").strip() or "Importação CSV"
+        try:
+            conteudo = arquivo.read().decode("utf-8-sig")
+        except UnicodeDecodeError:
+            arquivo.seek(0)
+            conteudo = arquivo.read().decode("latin-1")
+
+        if not conteudo.strip():
+            return Response({"detail": "O arquivo CSV está vazio."}, status=status.HTTP_400_BAD_REQUEST)
+
+        stream = io.StringIO(conteudo)
+        try:
+            dialect = csv.Sniffer().sniff(conteudo, delimiters=",	;|")
+            stream.seek(0)
+            reader = csv.reader(stream, dialect)
+        except csv.Error:
+            stream.seek(0)
+            reader = csv.reader(stream, delimiter=";")
+
+        headers = next(reader, None)
+        if headers is None:
+            return Response({"detail": "O arquivo CSV não possui cabeçalho."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if len(headers) == 1:
+            inline_headers = re.split(r"[;,]", headers[0])
+            if len(inline_headers) > 1:
+                headers = [parte.strip().strip(".") for parte in inline_headers if parte.strip().strip(".")]
+
+        expected_order = ["nome", "cpf", "telefone", "data_nascimento", "idade", "origem"]
+        index_by_name = {}
+
+        for idx, header in enumerate(headers):
+            normalized = _normalize_header_text(header)
+            if not normalized:
+                continue
+            for expected in expected_order:
+                key = expected.replace("_", "")
+                if normalized == key or key in normalized:
+                    index_by_name[expected] = idx
+
+        for idx, expected in enumerate(expected_order):
+            if expected not in index_by_name and idx < len(headers):
+                index_by_name[expected] = idx
+
+        missing_required = [col for col in CSV_REQUIRED_COLUMNS if col not in index_by_name]
+        if missing_required:
+            return Response(
+                {
+                    "detail": "Colunas obrigatórias ausentes no cabeçalho do CSV.",
+                    "colunas_obrigatorias": sorted(CSV_REQUIRED_COLUMNS),
+                    "colunas_ausentes": sorted(missing_required),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        matched_indexes = set(index_by_name.values())
+        colunas_desconhecidas = [
+            headers[idx]
+            for idx in range(len(headers))
+            if headers[idx] and idx not in matched_indexes
+        ]
+
+        def campo(row, chave):
+            idx = index_by_name.get(chave)
+            if idx is None or idx >= len(row):
+                return ""
+            return (row[idx] or "").strip()
+
+        stats = {
+            "total": 0,
+            "importados": 0,
+            "atualizados": 0,
+            "ignorados": 0,
+            "erros": 0,
+        }
+        erros = []
+
+        with transaction.atomic():
+            for linha, row in enumerate(reader, start=2):
+                if not row or not any((valor or "").strip() for valor in row):
+                    continue
+                if len(row) < len(headers):
+                    row = row + [""] * (len(headers) - len(row))
+                stats["total"] += 1
+                nome = campo(row, "nome")
+                telefone_original = _strip_decimal_tail(campo(row, "telefone"))
+                cpf_original = _strip_decimal_tail(campo(row, "cpf"))
+                data_nascimento_raw = campo(row, "data_nascimento")
+                idade_raw = _strip_decimal_tail(campo(row, "idade"))
+                origem_csv = campo(row, "origem")
+                origem_final = origem_csv or origem
+
+                if not nome and not telefone_original and not cpf_original:
+                    stats["ignorados"] += 1
+                    continue
+
+                if not nome:
+                    stats["erros"] += 1
+                    if len(erros) < IMPORT_MAX_LOG:
+                        erros.append(f"Linha {linha}: campo 'nome' vazio.")
+                    continue
+
+                if not telefone_original:
+                    stats["erros"] += 1
+                    if len(erros) < IMPORT_MAX_LOG:
+                        erros.append(f"Linha {linha}: campo 'telefone' vazio.")
+                    continue
+
+                telefone_normalizado = _normalizar_digitos(telefone_original)
+                if not telefone_normalizado:
+                    stats["erros"] += 1
+                    if len(erros) < IMPORT_MAX_LOG:
+                        erros.append(f"Linha {linha}: telefone inválido '{telefone_original}'.")
+                    continue
+
+                cpf_normalizado = _normalizar_digitos(cpf_original)
+                data_nascimento = _parse_data(data_nascimento_raw)
+                idade = None
+                if idade_raw:
+                    try:
+                        idade = int(float(idade_raw))
+                    except ValueError:
+                        idade = None
+                if idade is None and data_nascimento:
+                    idade = _calcular_idade(data_nascimento)
+
+                contato = None
+                query = Q()
+                if cpf_normalizado:
+                    query |= Q(cpf_normalizado=cpf_normalizado)
+                if telefone_normalizado:
+                    query |= Q(telefone_normalizado=telefone_normalizado)
+                if query:
+                    contato = ConviteContato.objects.filter(query).first()
+
+                if contato:
+                    atualizado = False
+                    if contato.nome != nome:
+                        contato.nome = nome
+                        atualizado = True
+                    if cpf_original and contato.cpf != cpf_original:
+                        contato.cpf = cpf_original
+                        atualizado = True
+                    if telefone_original and contato.telefone != telefone_original:
+                        contato.telefone = telefone_original
+                        atualizado = True
+                    if data_nascimento and contato.data_nascimento != data_nascimento:
+                        contato.data_nascimento = data_nascimento
+                        atualizado = True
+                    if idade is not None and contato.idade != idade:
+                        contato.idade = idade
+                        atualizado = True
+                    if origem_csv and contato.origem != origem_csv:
+                        contato.origem = origem_csv
+                        atualizado = True
+                    elif not contato.origem and origem and contato.origem != origem:
+                        contato.origem = origem
+                        atualizado = True
+                    if atualizado:
+                        contato.save()
+                        stats["atualizados"] += 1
+                    else:
+                        stats["ignorados"] += 1
+                    continue
+
+                ConviteContato.objects.create(
+                    nome=nome,
+                    cpf=cpf_original,
+                    telefone=telefone_original,
+                    data_nascimento=data_nascimento,
+                    idade=idade,
+                    origem=origem_final,
+                )
+                stats["importados"] += 1
+
+        importacao = ConviteImportacao.objects.create(
+            arquivo_nome=getattr(arquivo, "name", "importacao.csv"),
+            origem=origem,
+            total_linhas=stats["total"],
+            importados=stats["importados"],
+            atualizados=stats["atualizados"],
+            ignorados=stats["ignorados"],
+            erros=stats["erros"],
+            log="\n".join(erros),
+        )
+
+        serializer = self.get_serializer(importacao)
+        payload = serializer.data
+        payload["colunas_desconhecidas"] = colunas_desconhecidas
+        payload["origem_utilizada"] = origem
+        return Response(payload, status=status.HTTP_201_CREATED)
+
+
+class ConviteContatoViewSet(viewsets.ModelViewSet):
+    queryset = ConviteContato.objects.all()
+    serializer_class = ConviteContatoSerializer
+    permission_classes = [AllowAny]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["nome", "cpf", "telefone"]
+    ordering_fields = ["criado_em", "ultima_mensagem_em", "nome"]
+    ordering = ["nome"]
+    http_method_names = ["get", "patch", "head", "options"]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        status_param = self.request.query_params.get("status")
+        if status_param:
+            qs = qs.filter(status=status_param)
+        search_value = self.request.query_params.get("search")
+        if search_value:
+            termo = search_value.strip()
+            digits = _normalizar_digitos(termo)
+            filtro = Q(nome__icontains=termo)
+            if digits:
+                filtro |= Q(cpf_normalizado__startswith=digits) | Q(telefone_normalizado__startswith=digits)
+            qs = qs.filter(filtro)
+        return qs
+
+    def partial_update(self, request, *args, **kwargs):
+        dados = request.data
+        permitido = {"status"}
+        if any(chave not in permitido for chave in dados.keys()):
+            return Response(
+                {"detail": "Apenas o campo 'status' pode ser atualizado."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().partial_update(request, *args, **kwargs)
+
+    @action(detail=False, methods=["post"], url_path="enviar")
+    def enviar(self, request):
+        serializer = ConviteEnvioSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        ids = serializer.validated_data["contatos"]
+        mensagem = serializer.validated_data["mensagem"].strip()
+        if not mensagem:
+            return Response({"detail": "Informe a mensagem a ser enviada."}, status=status.HTTP_400_BAD_REQUEST)
+
+        contatos = list(self.get_queryset().filter(id__in=ids))
+        encontrados = {contato.id for contato in contatos}
+        ids_faltantes = [i for i in ids if i not in encontrados]
+        if ids_faltantes:
+            return Response(
+                {"detail": "Alguns contatos não foram encontrados.", "ids": ids_faltantes},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        enviados = 0
+        falhas = []
+        agora = timezone.now()
+
+        with transaction.atomic():
+            for contato in contatos:
+                ConviteMensagem.objects.create(
+                    contato=contato,
+                    conteudo=mensagem,
+                    status=ConviteMensagem.Status.ENVIADO,
+                )
+                contato.status = ConviteContato.Status.ENVIADO
+                contato.ultima_mensagem_em = agora
+                contato.save(update_fields=["status", "ultima_mensagem_em", "atualizado_em"])
+                enviados += 1
+
+        return Response(
+            {
+                "detail": "Mensagens registradas com sucesso.",
+                "enviados": enviados,
+                "falhas": falhas,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class ConviteMensagemViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = ConviteMensagem.objects.select_related("contato").all()
+    serializer_class = ConviteMensagemSerializer
+    permission_classes = [AllowAny]
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ["criado_em"]
+    ordering = ["-criado_em"]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        contato_id = self.request.query_params.get("contato")
+        if contato_id:
+            qs = qs.filter(contato_id=contato_id)
+        return qs
+
+        serializer = self.get_serializer(importacao)
+        return Response(
+            {
+                "detail": "Importação processada.",
+                "resumo": stats,
+                "colunas_desconhecidas": colunas_desconhecidas,
+                "importacao": serializer.data,
+            },
+            status=status.HTTP_201_CREATED,
+        )

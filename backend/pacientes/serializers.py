@@ -1,5 +1,13 @@
 from rest_framework import serializers
-from .models import Paciente, Anamnese, Documento, Prescricao
+from .models import (
+    Paciente,
+    Anamnese,
+    Documento,
+    Prescricao,
+    ConviteContato,
+    ConviteImportacao,
+    ConviteMensagem,
+)
 
 class PacienteSerializer(serializers.ModelSerializer):
     class Meta:
@@ -122,3 +130,78 @@ class PrescricaoSerializer(serializers.ModelSerializer):
             instance.itens = itens
         instance.save()
         return instance
+
+
+class ConviteContatoSerializer(serializers.ModelSerializer):
+    status_label = serializers.CharField(source="get_status_display", read_only=True)
+
+    class Meta:
+        model = ConviteContato
+        fields = [
+            "id",
+            "nome",
+            "cpf",
+            "telefone",
+            "data_nascimento",
+            "idade",
+            "origem",
+            "status",
+            "status_label",
+            "ultima_mensagem_em",
+            "criado_em",
+            "atualizado_em",
+        ]
+        read_only_fields = [
+            "id",
+            "status_label",
+            "ultima_mensagem_em",
+            "criado_em",
+            "atualizado_em",
+        ]
+
+
+class ConviteImportacaoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConviteImportacao
+        fields = [
+            "id",
+            "arquivo_nome",
+            "origem",
+            "total_linhas",
+            "importados",
+            "atualizados",
+            "ignorados",
+            "erros",
+            "log",
+            "criado_em",
+        ]
+        read_only_fields = fields
+
+
+class ConviteMensagemSerializer(serializers.ModelSerializer):
+    contato_nome = serializers.CharField(source="contato.nome", read_only=True)
+
+    class Meta:
+        model = ConviteMensagem
+        fields = [
+            "id",
+            "contato",
+            "contato_nome",
+            "conteudo",
+            "status",
+            "erro",
+            "criado_em",
+        ]
+        read_only_fields = ["id", "contato", "contato_nome", "status", "erro", "criado_em"]
+
+
+class ConviteEnvioSerializer(serializers.Serializer):
+    contatos = serializers.ListField(
+        child=serializers.IntegerField(min_value=1), allow_empty=False, write_only=True
+    )
+    mensagem = serializers.CharField(allow_blank=False)
+
+    def validate_contatos(self, value):
+        if len(set(value)) != len(value):
+            raise serializers.ValidationError("Remova contatos duplicados da seleção.")
+        return value

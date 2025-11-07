@@ -172,6 +172,24 @@ O projeto utiliza Tailwind CSS com classes personalizadas:
 - `.input` - Input estilizado
 - `.page-title` - Título de página com gradiente
 
+### 🎯 Onde ajustar cores
+
+| Área | Arquivo / Local | O que controla | Observações |
+| ---- | ---------------- | -------------- | ----------- |
+| **Paleta global** | `frontend/src/index.css` (`:root` no topo) | Variáveis `--app-bg`, `--text-color`, `--accent`, `--card-bg`, etc. | Altere aqui para mudar o tema inteiro. Cada variável é usada em diversos componentes; após editar, reinicie o dev server se necessário. |
+| **Textura / fundo** | `frontend/src/index.css` (`.texture-grid`) | Ativa/desativa texturas gerais. | Por padrão está sem textura (`content: none;`). |
+| **Settings dinâmicos** | `frontend/src/modules/settings/SettingsProvider.jsx` | Perfis de tema salvos. | Cada preset redefine as mesmas variáveis CSS via `setTheme`. Útil se quiser oferecer múltiplos temas. |
+| **Sidebar e layout** | `frontend/src/modules/layout/Sidebar.jsx` + classes `.sidebar*` em `index.css` | Cores da navegação lateral. | Ícones usam `currentColor`; troque a variável `--sidebar-*` em `:root` para refinar. |
+| **Dashboard** | `frontend/src/modules/dashboard/Dashboard.jsx` | Gradientes inline de cards e botões. | Procure por `style={{ background: ... }}` e por classes específicas (`glass-outline`, etc.). Substitua valores hexadecimais conforme necessário. |
+| **Mensagens** | `frontend/src/modules/mensagens/MensagensPage.jsx` | Usa classes genéricas (`card`, `btn`, `input`). | Ajuste as variáveis globais para refletir na página inteira. |
+| **Pacientes / CRUD** | `frontend/src/modules/pacientes/*.jsx` | Predominantemente classes utilitárias (`btn`, `input`). | Mesma lógica: mexa nas variáveis globais ou substitua cores inline se presentes. |
+| **Estoque** | `frontend/src/modules/estoque/EstoquePage.jsx` + bloco `.estoque-*` em `index.css` | Layout escuro com tons herdados do tema. | Modifique as variáveis globais ou edite só o bloco `.estoque-*` para personalizar sem impactar outras telas. |
+| **Login** | `frontend/src/modules/auth/Login.jsx` + classes `.login-*` em `index.css` | Plano de fundo com gradiente e “glow”. | Ajuste cores no bloco `.login-page` e `.login-card`. |
+| **Botões utilitários** | `frontend/src/index.css` (`.btn-*`, `.checkbox`, etc.) | Comportamento hover/active. | Altere as variáveis `--accent`, `--input-*` para mudar estados sem editar cada componente. |
+| **Backend (admin DRF)** | Arquivos do Django admin (`backend/clinica/settings.py` e templates padrão) | Mantém tema padrão Django. | Para customizar, crie templates próprios em `backend/templates/admin/`. |
+
+> 💡 **Dica rápida:** ao mudar uma cor global, use a busca do VS Code por `--accent`, `--card-bg`, etc., para confirmar onde mais a variável é aplicada. Para ajustes cirúrgicos em páginas específicas, prefira modificar o bloco de CSS dedicado (ex.: `.estoque-*`) ao invés de cores inline espalhadas.
+
 ## 🔐 Autenticação
 
 O sistema utiliza JWT (JSON Web Tokens) para autenticação:

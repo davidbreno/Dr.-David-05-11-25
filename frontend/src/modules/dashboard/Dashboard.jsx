@@ -246,13 +246,8 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 animate-fadeIn">
       {/* Header com Frase Motivacional e Logo */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-center mb-4">
         <MotivationalQuote />
-        <img 
-          src="/logo nome.svg" 
-          alt="Logo" 
-          className="h-16 object-contain flex-shrink-0 mr-8"
-        />
       </div>
 
       {/* Stats Cards */}
