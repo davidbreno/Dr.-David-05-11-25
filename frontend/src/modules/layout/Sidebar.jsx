@@ -30,12 +30,12 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="sidebar w-56 h-screen fixed left-0 top-0 flex flex-col">
+    <aside className="sidebar w-56 h-screen fixed left-0 top-0 flex flex-col" style={{ background: 'var(--bg-base)' }}>
       <div className="logo flex items-center justify-center p-8">
         <img src="/logo.svg" alt="Logo" className="h-auto w-20 object-contain" />
       </div>
 
-      <nav className="flex-1 space-y-1 py-4">
+      <nav className="flex-1 space-y-1 py-2">
         <MenuItem
           to="/dashboard"
           icon={
@@ -121,7 +121,7 @@ export default function Sidebar() {
 
       <div className="sidebar-footer">
         <p className="text-xs leading-relaxed">
-          Dica: personalize temas e fontes na aba Configurações para entregar uma experiência acolhedora aos pacientes.
+          Dica: personalize temas e fontes na aba Configurações.
         </p>
       </div>
     </aside>
